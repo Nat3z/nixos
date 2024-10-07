@@ -3,16 +3,16 @@ TERM = "xterm-256color"
 
 
 [font.normal]
-family = "JetBrains Mono NFM"
+family = "JetBrains Mono Nerd Font"
 style = "Regular"
 [font.bold]
-family = "JetBrains Mono NFM"
+family = "JetBrains Mono Nerd Font"
 style = "Bold"
 [font.italic]
-family = "JetBrains Mono NFM"
+family = "JetBrains Mono Nerd Font"
 style = "Italic"
 [font.bold_italic]
-family = "JetBrains Mono NFM"
+family = "JetBrains Mono Nerd Font"
 style = "Bold Italic"
 [font]
 size = 10
