@@ -18,11 +18,10 @@ in
     ];
 
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  # Bootloader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.loader.systemd-boot.configurationLimit = 3;
-
+  boot.loader.timeout = 0;
   networking.hostName = "nate-nix"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
 
@@ -83,11 +82,14 @@ in
     # no need to redefine it in your config for now)
     #media-session.enable = true;
   };
+  programs.zsh.enable = true;
 
+  users.defaultUserShell = pkgs.zsh;
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.nat = {
     isNormalUser = true;
     description = "nat";
+    useDefaultShell = true;
     extraGroups = [ "networkmanager" "wheel" ];
     packages = with pkgs; [
       kdePackages.kate
@@ -95,11 +97,13 @@ in
     ];
   };
 
+
   home-manager = {
     extraSpecialArgs = { inherit inputs; };
     users = {
       "nat" = import ./home.nix;
     };
+    useGlobalPkgs = true;
   };
 
   # Install firefox.
@@ -113,6 +117,7 @@ in
    wget
    lshw
    gparted
+   vscode.fhs
   ];
 
   programs.git = {
