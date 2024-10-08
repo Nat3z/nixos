@@ -15,9 +15,13 @@ in
       ../../modules/nixos/nvidia.nix
       ../../modules/nixos/steam.nix
       ../../modules/nixos/programming.nix
+      inputs.aagl.nixosModules.default
     ];
-
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings = {
+    substituters = [ "https://ezkea.cachix.org" ];
+    trusted-public-keys = [ "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI=" ];
+    experimental-features = [ "nix-command" "flakes" ];
+  };
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.loader.systemd-boot.configurationLimit = 3;
@@ -81,6 +85,12 @@ in
     # use the example session manager (no others are packaged yet so this is enabled by default,
     # no need to redefine it in your config for now)
     #media-session.enable = true;
+    extraConfig.pipewire."92-low-latency" = {
+      "context-properties" = {
+        default.clock.allowed-rates = [ 44100 48000 88200 96000 ];
+        default.clock.rate = 44100;
+      };
+    };
   };
   programs.zsh.enable = true;
 
@@ -108,16 +118,23 @@ in
 
   # Install firefox.
   programs.firefox.enable = true;
+  programs.honkers-railway-launcher.enable = true;
+
+  # enable flatpak
+  services.flatpak.enable = true;
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
   environment.systemPackages = with pkgs; [
-   git
-   wget
-   lshw
-   gparted
-   vscode.fhs
+    git
+    wget
+    lshw
+    gparted
+    vscode.fhs
+    gpu-screen-recorder # CLI
+    gpu-screen-recorder-gtk # GUI
+    inputs.zen-browser.packages."${system}".default
   ];
 
   programs.git = {
@@ -129,7 +146,7 @@ in
   system.stateVersion = "24.05"; 
 
   # laptop nvidia prime
-
+  services.thermald.enable = true;
   hardware.nvidia.prime = {
       offload = {
           enable = true;
