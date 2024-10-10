@@ -2,7 +2,7 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, inputs, ... }:
+{ config, pkgs, inputs, flakeName, ... }:
 
 let
   credentials = import ./credentials.nix;
@@ -16,23 +16,15 @@ in
       ../../modules/nixos/steam.nix
       ../../modules/nixos/programming.nix
       inputs.aagl.nixosModules.default
+      ../../modules/nixos/cachix.nix
+      ../../modules/nixos/hyprland.nix
     ];
-  nix.settings = {
-    substituters = [ "https://ezkea.cachix.org" ];
-    trusted-public-keys = [ "ezkea.cachix.org-1:ioBmUbJTZIKsHmWWXPe1FSFbeVe+afhfgqgTSNd34eI=" ];
-    experimental-features = [ "nix-command" "flakes" ];
-  };
+  
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.loader.systemd-boot.configurationLimit = 3;
+  boot.loader.systemd-boot.configurationLimit = 10;
   boot.loader.timeout = 0;
   networking.hostName = "nate-nix"; # Define your hostname.
-  # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
-
-  # Configure network proxy if necessary
-  # networking.proxy.default = "http://user:password@proxy:port/";
-  # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
-
   # Enable networking
   networking.networkmanager.enable = true;
 
@@ -61,6 +53,11 @@ in
   # Enable the KDE Plasma Desktop Environment.
   services.displayManager.sddm.enable = true;
   services.desktopManager.plasma6.enable = true;
+
+  hyprland.enable = true;
+  hyprland.useWaybar = true;
+  hyprland.useWofi = true;
+  hyprland.useHyprPaper = true;
 
   # Configure keymap in X11
   services.xserver.xkb = {
@@ -109,7 +106,7 @@ in
 
 
   home-manager = {
-    extraSpecialArgs = { inherit inputs; };
+    extraSpecialArgs = { inherit inputs; inherit flakeName; };
     users = {
       "nat" = import ./home.nix;
     };
@@ -135,6 +132,7 @@ in
     gpu-screen-recorder # CLI
     gpu-screen-recorder-gtk # GUI
     inputs.zen-browser.packages."${system}".default
+    kitty
   ];
 
   programs.git = {

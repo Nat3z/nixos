@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, flakeName, ... }:
 
 let
   gitCredentials = import ../../credentials/git.nix;
@@ -27,6 +27,20 @@ in {
     # '';
   };
 
+  # set source to be the dotfiles directory/the flake's name
+  home.file.".config/hypr" = {
+    source = ../../dotfiles/${flakeName}/hypr;
+    recursive = true;
+  };
+  home.file.".config/waybar" = {
+    source = ../../dotfiles/${flakeName}/waybar;
+    recursive = true;
+  };
+  home.file.".config/wofi" = {
+    source = ../../dotfiles/${flakeName}/wofi;
+    recursive = true;
+  };
+
   home.packages = with pkgs; [
       (nerdfonts.override { fonts = [ "JetBrainsMono" ]; })
   ];
@@ -49,6 +63,13 @@ in {
     enable = true;
     userName = name;
     userEmail = email;
+  };
+
+  programs.kitty = {
+    enable = true;
+    settings = {
+      confirm_os_window_close = 0;
+    };
   };
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
