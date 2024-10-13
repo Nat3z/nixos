@@ -18,6 +18,7 @@ in
 
     environment.systemPackages = with pkgs; [
       swaynotificationcenter
+      xwaylandvideobridge
       (mkIf cfg.useWaybar waybar)
       (mkIf cfg.useWofi wofi)
       (mkIf cfg.useHyprPaper hyprpaper)

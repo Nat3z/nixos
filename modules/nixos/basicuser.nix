@@ -132,6 +132,7 @@ with lib;
       git
       wget
       htop
+      (mkIf config.userSetup.useAudio pavucontrol)
     ];
 
     programs.git.enable = true;

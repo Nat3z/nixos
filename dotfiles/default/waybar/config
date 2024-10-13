@@ -184,7 +184,7 @@
 "custom/shutdown": {
   "format": "󰐥 ",
   "on-click": "shutdown now",
-  "on-right-click": "reboot"
+  "on-click-right": "reboot"
 },
 
 "jack": {
