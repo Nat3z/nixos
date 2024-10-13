@@ -7,7 +7,8 @@
 
   "custom/logo": {
     "format": "󱄅",
-    "tooltip": false
+    "tooltip": false,
+    "on-click": "kitty -e htop"
   },
 
   "hyprland/workspaces": {

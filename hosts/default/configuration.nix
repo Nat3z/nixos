@@ -21,6 +21,7 @@ in
 
       ../../modules/nixos/nvidia.nix
       ../../modules/nixos/steam.nix
+      ../../modules/nixos/tailscale.nix
     ];
 
   userSetup.name = "nat";
