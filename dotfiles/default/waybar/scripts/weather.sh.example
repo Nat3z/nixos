@@ -22,3 +22,4 @@ if ! grep -q "Unknown location" <<< "$text"; then
     echo "{\"text\": \"$text\", \"tooltip\": \"<tt>$tooltip</tt>\", \"class\": \"weather\"}"
 fi
 
+
