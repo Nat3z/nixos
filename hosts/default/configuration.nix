@@ -2,7 +2,7 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, inputs, flakeName, ... }:
+{ config, pkgs, inputs, lib, flakeName, ... }:
 
 let
   credentials = import ./credentials.nix;
@@ -67,6 +67,19 @@ in
     };
     intelBusId = "PCI:0:2:0";
     nvidiaBusId = "PCI:1:0:0";
+  };
+
+  programs.nix-ld.enable = true;
+
+  programs.nix-ld.libraries = with pkgs; [
+    pulseaudio
+    libglvnd
+  ];
+  environment.sessionVariables = {
+    LD_LIBRARY_PATH = lib.makeLibraryPath [
+      pkgs.libglvnd
+      pkgs.pulseaudio
+    ];
   };
 
 }
