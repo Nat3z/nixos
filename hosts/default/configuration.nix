@@ -49,6 +49,12 @@ in
   # Install firefox.
   programs.firefox.enable = true;
   programs.honkers-railway-launcher.enable = true;
+  qt.platformTheme = "qt5ct";
+
+  environment.variables = {
+    QT_QPA_PLATFORMTHEME = "qt5ct";
+  };
+
 
   environment.systemPackages = with pkgs; [
     lshw
@@ -57,6 +63,7 @@ in
     gpu-screen-recorder-gtk # GUI
     inputs.zen-browser.packages."${system}".default
     kitty
+    xfce.thunar
   ];
 
   services.thermald.enable = true;
