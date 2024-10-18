@@ -48,12 +48,7 @@ in
 
   # Install firefox.
   programs.firefox.enable = true;
-  programs.honkers-railway-launcher.enable = true;
-  qt.platformTheme = "qt5ct";
-
-  environment.variables = {
-    QT_QPA_PLATFORMTHEME = "qt5ct";
-  };
+  programs.honkers-railway-launcher.enable = true; 
 
 
   environment.systemPackages = with pkgs; [
@@ -66,7 +61,10 @@ in
     xfce.thunar
   ];
 
+  services.gvfs.enable = true; # for thunar
   services.thermald.enable = true;
+  services.gnome.gnome-keyring.enable = true;
+  security.pam.services.sddm.enableGnomeKeyring = true;
   hardware.nvidia.prime = {
     offload = {
       enable = true;

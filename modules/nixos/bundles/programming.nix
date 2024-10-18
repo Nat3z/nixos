@@ -54,6 +54,7 @@ in
           pkgs.zig
           pkgs.nodejs_22
           pkgs.bun
+          pkgs.nodePackages.pnpm
         ];
     }
   ]);
