@@ -9,6 +9,7 @@ in {
     ../../modules/home-manager/alacritty.nix
     ../../modules/home-manager/discord.nix
     ../../modules/home-manager/minecraft.nix
+    ../../modules/home-manager/jetbrains-idea.nix
    ];
 
   # Home Manager needs a bit of information about you and the paths it should
@@ -24,19 +25,11 @@ in {
     recursive = true;
   };
 
-  home.packages = with pkgs; [
-    jetbrains.idea-ultimate
-    (nerdfonts.override { fonts = [ "JetBrainsMono" ]; })
-  ];
-
-  fonts.fontconfig.enable = true;
-
   programs.zsh = {
     enable = true;
     oh-my-zsh = {
       enable = true;
       plugins = [ "git" ];
-
     };
   };
 

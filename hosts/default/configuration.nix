@@ -11,9 +11,9 @@ in
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
+      ../../modules/nixos/cachix.nix
       inputs.home-manager.nixosModules.default
       inputs.aagl.nixosModules.default
-      ../../modules/nixos/cachix.nix
 
       ../../modules/nixos/basicuser.nix
       ../../modules/nixos/bundles/programming.nix
@@ -22,6 +22,7 @@ in
       ../../modules/nixos/nvidia.nix
       ../../modules/nixos/steam.nix
       ../../modules/nixos/tailscale.nix
+      ../../modules/nixos/thunar.nix
     ];
 
   userSetup.name = "nat";
@@ -34,7 +35,6 @@ in
   hyprland.useWofi = true;
   hyprland.useHyprPaper = true;
 
-
   bundles.programming = {
     enable = true;
     vscode = {
@@ -43,6 +43,9 @@ in
     };
     zsh = {
       enable = true;
+    };
+    lsp = {
+      nixos = true;
     };
   };
 
@@ -58,10 +61,8 @@ in
     gpu-screen-recorder-gtk # GUI
     inputs.zen-browser.packages."${system}".default
     kitty
-    xfce.thunar
   ];
 
-  services.gvfs.enable = true; # for thunar
   services.thermald.enable = true;
   services.gnome.gnome-keyring.enable = true;
   security.pam.services.sddm.enableGnomeKeyring = true;

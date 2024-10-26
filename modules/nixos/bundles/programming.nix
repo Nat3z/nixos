@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, inputs, ... }:
 with lib;
 
 let 
@@ -18,6 +18,16 @@ in
     }; 
     zsh = {
       enable = mkEnableOption "Zsh";
+    };
+    lsp = {
+      nixos = mkEnableOption "Adds Nixd LSP";
+    };
+    system = mkOption {
+      type = types.str;
+      default = "x86_64-linux";
+      description = ''
+        The system type.
+      '';
     };
   };
 
@@ -47,6 +57,16 @@ in
           enable = true;
         };
         users.defaultUserShell = pkgs.zsh;
+    })
+
+    (mkIf cfg.lsp.nixos {
+      environment.systemPackages = [
+        pkgs.nixd
+        inputs.alejandra.defaultPackage."${cfg.system}"
+      ];
+      nix.nixPath = [
+        "nixpkgs=${inputs.nixpkgs}"
+      ];
     })
 
     {
