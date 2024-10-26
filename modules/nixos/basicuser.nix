@@ -131,7 +131,7 @@ with lib;
     environment.systemPackages = with pkgs; [
       git
       wget
-      htop
+      glances
       (mkIf config.userSetup.useAudio pavucontrol)
     ];
 
