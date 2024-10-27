@@ -10,7 +10,7 @@
     };
     aagl.url = "github:ezKEa/aagl-gtk-on-nix";
     aagl.inputs.nixpkgs.follows = "nixpkgs"; 
-    zen-browser.url = "github:ch4og/zen-browser-flake";
+    zen-browser.url = "github:nat3z/zen-browser-flake";
     alejandra.url = "github:kamadorueda/alejandra/3.0.0";
     alejandra.inputs.nixpkgs.follows = "nixpkgs";
   };
