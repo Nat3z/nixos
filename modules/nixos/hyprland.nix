@@ -10,6 +10,7 @@ in
       useWaybar = lib.mkEnableOption "Use Waybar";
       useWofi = lib.mkEnableOption "Use Wofi";  
       useHyprPaper = lib.mkEnableOption "Use HyprPaper";
+      useHyprlock = lib.mkEnableOption "Use Hyprlock";
     };
   };
   config = {
@@ -21,6 +22,8 @@ in
       (mkIf cfg.useWaybar pkgs.waybar)
       (mkIf cfg.useWofi pkgs.wofi)
       (mkIf cfg.useHyprPaper pkgs.hyprpaper)
+      (mkIf cfg.useHyprlock pkgs.hyprlock)
+      (mkIf cfg.useHyprlock pkgs.hypridle)
     ];
 
   };
