@@ -57,6 +57,7 @@ in
           enable = true;
         };
         users.defaultUserShell = pkgs.zsh;
+
     })
 
     (mkIf cfg.lsp.nixos {
@@ -70,12 +71,12 @@ in
     })
 
     {
-        environment.systemPackages = [
-          pkgs.zig
-          pkgs.nodejs_22
-          pkgs.bun
-          pkgs.nodePackages.pnpm
-        ];
+      environment.systemPackages = with pkgs; [
+        zig
+        nodejs_22
+        bun
+        nodePackages.pnpm
+      ];
     }
   ]);
 }

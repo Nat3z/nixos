@@ -1,5 +1,4 @@
-{ options, config, lib, pkgs, ... }: 
-
+{ config, lib, pkgs, ... }: 
 with lib;
 let
   cfg = config.hyprland;
@@ -16,12 +15,12 @@ in
   config = {
     programs.hyprland.enable = cfg.enable;
 
-    environment.systemPackages = with pkgs; [
-      swaynotificationcenter
-      xwaylandvideobridge
-      (mkIf cfg.useWaybar waybar)
-      (mkIf cfg.useWofi wofi)
-      (mkIf cfg.useHyprPaper hyprpaper)
+    environment.systemPackages = [
+      pkgs.swaynotificationcenter
+      pkgs.xwaylandvideobridge
+      (mkIf cfg.useWaybar pkgs.waybar)
+      (mkIf cfg.useWofi pkgs.wofi)
+      (mkIf cfg.useHyprPaper pkgs.hyprpaper)
     ];
 
   };

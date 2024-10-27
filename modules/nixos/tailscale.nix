@@ -1,7 +1,7 @@
-{ config, pkgs, inputs, ... }:
+{ pkgs, ... }:
 {
-  environment.systemPackages = [
-    pkgs.tailscale
+  environment.systemPackages = with pkgs; [
+    tailscale
   ];
   services.tailscale.enable = true;
 }

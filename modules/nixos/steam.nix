@@ -1,8 +1,8 @@
-{ config, pkgs, inputs, ... }:
+{ pkgs, ... }:
 {
-    environment.systemPackages = [
-        pkgs.steam
-        pkgs.mangohud
+    environment.systemPackages = with pkgs; [
+        steam
+        mangohud
     ];
 
     programs.steam = {
