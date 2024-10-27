@@ -56,6 +56,11 @@ in
         programs.zsh = {
           enable = true;
         };
+        programs.direnv = {
+          enable = true;
+          enableZshIntegration = true;
+          nix-direnv.enable = true;
+        };
         users.defaultUserShell = pkgs.zsh;
 
     })
