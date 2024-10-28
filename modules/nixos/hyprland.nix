@@ -19,6 +19,7 @@ in
     environment.systemPackages = [
       pkgs.swaynotificationcenter
       pkgs.xwaylandvideobridge
+      pkgs.kdePackages.qtstyleplugin-kvantum
       (mkIf cfg.useWaybar pkgs.waybar)
       (mkIf cfg.useWofi pkgs.wofi)
       (mkIf cfg.useHyprPaper pkgs.hyprpaper)
