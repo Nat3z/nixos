@@ -61,6 +61,7 @@ in
     gpu-screen-recorder-gtk # GUI
     inputs.zen-browser.packages."${system}".default
     kitty
+    kwallet-pam
   ];
 
   services.thermald.enable = true;
