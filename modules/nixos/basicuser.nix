@@ -136,7 +136,6 @@ with lib;
     ];
 
     programs.git.enable = true;
-    programs.git.config.credential.helper = "libsecret";
 
     ##################
     #      i18n      #

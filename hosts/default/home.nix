@@ -45,7 +45,9 @@ in {
       confirm_os_window_close = 0;
     };
   };
-
+  home.file.".config/hypr/kwallet.conf".text = ''
+    exec-once = ${pkgs.kwallet-pam}/libexec/pam_kwallet_init 
+  '';
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 
