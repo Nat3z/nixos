@@ -23,6 +23,7 @@ in
       ../../modules/nixos/steam.nix
       ../../modules/nixos/tailscale.nix
       ../../modules/nixos/thunar.nix
+      ../../modules/nixos/keyring.nix
     ];
 
   userSetup.name = "nat";
@@ -64,10 +65,6 @@ in
   ];
 
   services.thermald.enable = true;
-  services.gnome.gnome-keyring.enable = true;
-  services.displayManager.defaultSession = "hyprland";
-  # auto start gnome-keyring-daemon services sddm
-  security.pam.services.login.enableGnomeKeyring = true;
 
   hardware.nvidia.prime = {
     offload = {

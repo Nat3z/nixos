@@ -11,23 +11,33 @@ in
       useWofi = lib.mkEnableOption "Use Wofi";  
       useHyprPaper = lib.mkEnableOption "Use HyprPaper";
       useHyprlock = lib.mkEnableOption "Use Hyprlock";
+      defaultSession = lib.mkOption {
+        type = types.bool;
+        default = true;
+        description = "Should Hyprland Be Default";
+      };
     };
   };
-  config = {
-    programs.hyprland.enable = cfg.enable;
+  config = mkIf cfg.enable (lib.mkMerge [
+    {
+      programs.hyprland.enable = cfg.enable;
 
-    environment.systemPackages = [
-      pkgs.swaynotificationcenter
-      pkgs.xwaylandvideobridge
-      pkgs.kdePackages.qtstyleplugin-kvantum
-      (mkIf cfg.useWaybar pkgs.waybar)
-      (mkIf cfg.useWofi pkgs.wofi)
-      (mkIf cfg.useHyprPaper pkgs.hyprpaper)
-      (mkIf cfg.useHyprlock pkgs.hyprlock)
-      (mkIf cfg.useHyprlock pkgs.hypridle)
-    ];
+      environment.systemPackages = [
+        pkgs.swaynotificationcenter
+        pkgs.xwaylandvideobridge
+        pkgs.kdePackages.qtstyleplugin-kvantum
+        (mkIf cfg.useWaybar pkgs.waybar)
+        (mkIf cfg.useWofi pkgs.wofi)
+        (mkIf cfg.useHyprPaper pkgs.hyprpaper)
+        (mkIf cfg.useHyprlock pkgs.hyprlock)
+        (mkIf cfg.useHyprlock pkgs.hypridle)
+      ];
+      qt.enable = true;
+    }
 
-    qt.enable = true;
+    (lib.mkIf cfg.defaultSession {
+      services.displayManager.defaultSession = "hyprland";
+    })
 
-  };
+  ]);
 }
