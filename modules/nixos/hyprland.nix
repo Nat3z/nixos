@@ -27,5 +27,7 @@ in
       (mkIf cfg.useHyprlock pkgs.hypridle)
     ];
 
+    qt.enable = true;
+
   };
 }
