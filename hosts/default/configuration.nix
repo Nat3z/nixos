@@ -61,12 +61,14 @@ in
     gpu-screen-recorder-gtk # GUI
     inputs.zen-browser.packages."${system}".default
     kitty
-    kwallet-pam
   ];
 
   services.thermald.enable = true;
-  security.pam.services.sddm.enableKwallet = true;
-  security.pam.services.login.enableKwallet = true;
+  services.gnome.gnome-keyring.enable = true;
+  services.displayManager.defaultSession = "hyprland";
+  # auto start gnome-keyring-daemon services sddm
+  security.pam.services.login.enableGnomeKeyring = true;
+
   hardware.nvidia.prime = {
     offload = {
       enable = true;

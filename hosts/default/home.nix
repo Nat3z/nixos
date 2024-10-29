@@ -45,12 +45,6 @@ in {
       confirm_os_window_close = 0;
     };
   };
-  home.file.".config/hypr/kwallet.conf".text = ''
-    exec-once = kwalletmanager5 &
-    exec-once = ${pkgs.kwallet-pam}/libexec/pam_kwallet_init --no-startup-id
-    exec-once = sleep 2; hyprctl dispatch closewindow org.kde.kwalletmanager5
-    exec-once = echo "KWallet started" > /tmp/kwallet.log
-  '';
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 
