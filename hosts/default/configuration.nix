@@ -64,9 +64,8 @@ in
   ];
 
   services.thermald.enable = true;
-  services.gnome.gnome-keyring.enable = true;
-  security.pam.services.sddm.enableGnomeKeyring = true;
-  security.pam.services.login.enableGnomeKeyring = true;
+  security.pam.services.sddm.enableKwallet = true;
+  security.pam.services.login.enableKwallet = true;
   hardware.nvidia.prime = {
     offload = {
       enable = true;
