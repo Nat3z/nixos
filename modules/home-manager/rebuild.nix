@@ -14,5 +14,19 @@
         fi
       fi
     '')
+
+    (pkgs.writeShellScriptBin "update" ''
+      if [ "$EUID" = 0 ]; then
+        echo "Please don't run as root, you were about to break git."
+      else
+        cd /home/${config.home.username}/Documents/Code/Bash/zen-browser-flake/
+        echo "Updating Zen Browser flake..."
+        bun run updateall.js
+        echo "Updating Zen Browser flake... Done!"
+        cd /home/${config.home.username}/nix-config
+        nix flake update
+        rebuild
+      fi 
+    '')
    ];
 }
