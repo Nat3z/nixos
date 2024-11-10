@@ -60,10 +60,14 @@ in
             done
           }
 
+          # first is vesktop. 
           move_windows_to_workspace 'vesktop' 1
-          move_windows_to_workspace 'zen-alpha' 3
+          # second is always primary items.
           move_windows_to_workspace 'org.vinegarhq.Sober' 2
-          move_windows_to_workspace 'Code' 4
+          move_windows_to_workspace 'Code' 2
+          # third is always secondary items.
+          move_windows_to_workspace 'zen-alpha' 3
+          # fifth is always steam.
           move_windows_to_workspace 'steam' 5
         '')
       ];
