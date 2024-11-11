@@ -178,7 +178,7 @@
   },
   "justify": "center",
   "on-click": "amixer sset Master toggle",
-  "on-click-right": "pavucontrol",
+  "on-click-right": "GDK_BACKEND=x11 pavucontrol",
   "tooltip-format": "{icon}  {volume}%"
 },
 
