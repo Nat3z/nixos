@@ -65,6 +65,7 @@ in
           # second is always primary items.
           move_windows_to_workspace 'org.vinegarhq.Sober' 2
           move_windows_to_workspace 'Code' 2
+          move_windows_to_workspace 'star-rail.exe' 2
           # third is always secondary items.
           move_windows_to_workspace 'zen-alpha' 3
           # fifth is always steam.
