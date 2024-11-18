@@ -24,6 +24,7 @@ in
       ../../modules/nixos/tailscale.nix
       ../../modules/nixos/thunar.nix
       ../../modules/nixos/keyring.nix
+      ../../modules/nixos/distrobox.nix
     ];
 
   userSetup.name = "nat";
