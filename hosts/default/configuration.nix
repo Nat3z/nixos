@@ -37,6 +37,8 @@ in
   hyprland.useWofi = true;
   hyprland.useHyprPaper = true;
   hyprland.useHyprlock = true;
+  hyprland.useScreenshots = true;
+
   bundles.programming = {
     enable = true;
     vscode = {
