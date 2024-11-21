@@ -13,6 +13,9 @@
     zen-browser.url = "github:nat3z/zen-browser-flake";
     alejandra.url = "github:kamadorueda/alejandra/3.0.0";
     alejandra.inputs.nixpkgs.follows = "nixpkgs";
+
+    neovim-nixos.url = "github:nat3z/neovim";
+    neovim-nixos.inputs.nixpkgs.follows = "nixpkgs"; 
   };
 
   outputs = { self, nixpkgs, ... }@inputs: {
@@ -21,6 +24,7 @@
       modules = [
         ./hosts/default/configuration.nix
         inputs.home-manager.nixosModules.default
+        inputs.neovim-nixos.nixosModules.default
       ];
     };
   };
