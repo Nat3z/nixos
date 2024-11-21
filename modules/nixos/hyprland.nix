@@ -11,6 +11,7 @@ in
       useWofi = lib.mkEnableOption "Use Wofi";  
       useHyprPaper = lib.mkEnableOption "Use HyprPaper";
       useHyprlock = lib.mkEnableOption "Use Hyprlock";
+      useScreenshots = lib.mkEnableOption "Use Screenshots";
       autoLayout = lib.mkOption {
         type = types.bool;
         default = true;
@@ -36,6 +37,7 @@ in
         (mkIf cfg.useHyprPaper pkgs.hyprpaper)
         (mkIf cfg.useHyprlock pkgs.hyprlock)
         (mkIf cfg.useHyprlock pkgs.hypridle)
+        (mkIf cfg.useScreenshots pkgs.hyprshot)
       ];
       qt.enable = true;
     }
