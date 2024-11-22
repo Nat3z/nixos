@@ -45,12 +45,6 @@
       bind-key -T copy-mode-vi C-v send-keys -X rectangle-toggle
       bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel 
 
-     bind -n C-h if-shell -F "#{@is_vim}" "send-keys C-h"  "select-pane -L"
-      bind -n C-j if-shell -F "#{@is_vim}" "send-keys C-j"  "select-pane -D"
-      bind -n C-k if-shell -F "#{@is_vim}" "send-keys C-k"  "select-pane -U"
-      bind -n C-l if-shell -F "#{@is_vim}" "send-keys C-l"  "select-pane -R"
-      bind -n C-\\ if-shell -F "#{@is_vim}" "send-keys C-\\" "select-pane -l" 
-
       bind-key -T copy-mode-vi 'C-h' select-pane -L
       bind-key -T copy-mode-vi 'C-j' select-pane -D
       bind-key -T copy-mode-vi 'C-k' select-pane -U
