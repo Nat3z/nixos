@@ -56,11 +56,16 @@ in
         programs.zsh = {
           enable = true;
         };
+        environment.shellAliases = {
+          cd = "zoxide";
+        };
         programs.direnv = {
           enable = true;
           enableZshIntegration = true;
           nix-direnv.enable = true;
         };
+
+        # override cd to use zoxide
         users.defaultUserShell = pkgs.zsh;
 
     })

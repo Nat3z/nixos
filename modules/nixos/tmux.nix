@@ -12,6 +12,10 @@
 
     plugins = with pkgs; [
       tmuxPlugins.better-mouse-mode
+      tmuxPlugins.sensible
+      tmuxPlugins.vim-tmux-navigator
+      tmuxPlugins.catppuccin
+      tmuxPlugins.yank
     ];
 
     extraConfig = ''
@@ -20,13 +24,21 @@
       set -ga terminal-overrides ",*256col*:Tc"
       set -ga terminal-overrides '*:Ss=\E[%p1%d q:Se=\E[ q'
       set-environment -g COLORTERM "truecolor"
+      set -g @catppuccin_flavor \'mocha\'
 
       # Mouse works as expected
       set-option -g mouse on
       # easy-to-remember split pane commands
       bind | split-window -h -c "#{pane_current_path}"
       bind - split-window -v -c "#{pane_current_path}"
+      bind -n M-H previous-window
+      bind -n M-L next-window
       bind c new-window -c "#{pane_current_path}"
+
+      bind-key -T copy-mode-vi v send-keys -X begin-selection
+      bind-key -T copy-mode-vi C-v send-keys -X rectangle-toggle
+      bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel 
+
     '';
   };
 }
