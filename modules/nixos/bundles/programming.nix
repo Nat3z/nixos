@@ -57,7 +57,7 @@ in
           enable = true;
         };
         environment.shellAliases = {
-          cd = "zoxide";
+          cd = "z";
         };
         programs.direnv = {
           enable = true;

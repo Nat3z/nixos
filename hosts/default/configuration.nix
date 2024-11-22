@@ -25,7 +25,6 @@ in
       ../../modules/nixos/thunar.nix
       ../../modules/nixos/keyring.nix
       ../../modules/nixos/distrobox.nix
-      ../../modules/nixos/tmux.nix
     ];
 
   userSetup.name = "nat";
