@@ -55,7 +55,7 @@ in
 
   # Install firefox.
   programs.firefox.enable = true;
-  programs.honkers-railway-launcher.enable = true; 
+  programs.honkers-railway-launcher.enable = true;
 
 
   environment.systemPackages = with pkgs; [
@@ -64,6 +64,7 @@ in
     gpu-screen-recorder # CLI
     gpu-screen-recorder-gtk # GUI
     inputs.zen-browser.packages."${system}".default
+    inputs.neovim-nixos.packages."${system}".nvim
     kitty
   ];
 
