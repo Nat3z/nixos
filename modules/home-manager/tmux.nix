@@ -14,7 +14,14 @@
       tmuxPlugins.better-mouse-mode
       tmuxPlugins.sensible
       tmuxPlugins.vim-tmux-navigator
-      tmuxPlugins.catppuccin
+      {
+        plugin = tmuxPlugins.catppuccin;
+        extraConfig = '' 
+          set -g @catppuccin_flavour 'mocha'
+          set -g @catppuccin_window_tabs_enabled on
+          set -g @catppuccin_date_time "%H:%M"
+        '';
+      }
       tmuxPlugins.yank
     ];
 
@@ -24,7 +31,7 @@
       set -ga terminal-overrides ",*256col*:Tc"
       set -ga terminal-overrides '*:Ss=\E[%p1%d q:Se=\E[ q'
       set-environment -g COLORTERM "truecolor"
-      set -g @catppuccin_flavor \'mocha\'
+      set -g @catppuccin_flavor 'mocha'
 
       # Mouse works as expected
       set-option -g mouse on
