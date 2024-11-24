@@ -1,7 +1,9 @@
-{ config, pkgs, flakeName, builtins, ... }:
+{ config, pkgs, flakeName, lib, ... }@inputs:
 
 let
   gitCredentials = import ../../credentials/git.nix;
+  opengameinstaller = import ../../modules/nixos/apps/opengameinstaller.nix { inherit lib pkgs; };
+
 in {
 
   imports = [
@@ -23,6 +25,11 @@ in {
 
   home.stateVersion = "24.05"; # Please read the comment before changing.
 
+  # Extra Packages
+  home.packages = [
+    opengameinstaller 
+  ];
+  
   # set source to be the dotfiles directory/the flake's name
   home.file.".config" = {
     source = ../../dotfiles/${flakeName};
