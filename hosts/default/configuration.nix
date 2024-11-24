@@ -80,6 +80,7 @@ in
   };
 
   programs.nix-ld.enable = true;
+  # environment.variables.EDITOR = "nvim";
 
   programs.nix-ld.libraries = with pkgs; [
     pulseaudio

@@ -13,6 +13,7 @@
     plugins = with pkgs; [
       tmuxPlugins.better-mouse-mode
       tmuxPlugins.sensible
+      tmuxPlugins.vim-tmux-navigator
       {
         plugin = tmuxPlugins.catppuccin;
         extraConfig = '' 
@@ -44,12 +45,6 @@
       bind-key -T copy-mode-vi v send-keys -X begin-selection
       bind-key -T copy-mode-vi C-v send-keys -X rectangle-toggle
       bind-key -T copy-mode-vi y send-keys -X copy-pipe-and-cancel 
-
-      bind-key -T copy-mode-vi 'C-h' select-pane -L
-      bind-key -T copy-mode-vi 'C-j' select-pane -D
-      bind-key -T copy-mode-vi 'C-k' select-pane -U
-      bind-key -T copy-mode-vi 'C-l' select-pane -R
-      bind-key -T copy-mode-vi 'C-\' select-pane -l
     '';
   };
 }

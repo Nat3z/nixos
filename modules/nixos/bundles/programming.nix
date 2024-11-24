@@ -52,6 +52,7 @@ in
     (mkIf cfg.zsh.enable {
         environment.systemPackages = [
           pkgs.zsh
+          pkgs.fzf
         ];
         programs.zsh = {
           enable = true;
