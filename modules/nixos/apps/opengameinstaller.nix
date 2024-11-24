@@ -9,7 +9,7 @@ in
     name = "OpenGameInstaller";
     version = "1.6.3";
     src = appimage;
-    extraPkgs = pkgs: [ pkgs.bun ];
+    extraPkgs = pkgs: [ pkgs.bun pkgs.unzip pkgs.unrar pkgs.wineWowPackages.stable ];
     meta = {
       description = "OpenGameInstaller is a game downloader and installer for Linux";
       homepage = "https://ogi.nat3z.com";
@@ -19,7 +19,7 @@ in
     desktopItems = [
       (lib.makeDesktopItem {
         name = "OpenGameInstaller";
-        exec = "OpenGameInstaller-linux-pt.AppImage %U";
+        exec = "cd $HOME/.local/share/OpenGameInstaller && OpenGameInstaller-linux-pt.AppImage %U";
         icon = "opengameinstaller";
         desktopName = "OpenGameInstaller";
         comment = "OpenGameInstaller desktop";
@@ -28,4 +28,7 @@ in
         startupWMClass = "ogi";
       })
     ];
+    extraInstallCommands = ''
+      # mkdir -p $HOME/.local/share/OpenGameInstaller
+    '';
   }
