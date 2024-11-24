@@ -13,6 +13,7 @@ in {
     ../../modules/home-manager/tmux.nix
     ../../modules/home-manager/zsh.nix
     ../../modules/home-manager/kitty.nix
+    ../../modules/home-manager/fuzzy-in.nix
    ];
 
   # Home Manager needs a bit of information about you and the paths it should
