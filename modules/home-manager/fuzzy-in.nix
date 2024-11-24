@@ -5,17 +5,20 @@
             if [[ $# -eq 1 ]]; then
                 selected=$1
             else
-                selected=$(fd --type f --exclude .git | fzf-tmux)
+                selected=$(fd --type directory --exclude .git --exclude Downloads --exclude node_modules --exclude target | fzf-tmux)
             fi
 
             if [[ -z $selected ]]; then
                 exit 0
             fi
-
             selected_name=$(basename "$selected" | tr . _)
-            tmux_running=$(pgrep tmux)
+            # check if a tmux session already exists
+            if tmux has-session -t=$selected_name 2> /dev/null; then
+                tmux attach-session -t $selected_name
+                exit 0
+            fi
 
-            if [[ -z $TMUX ]] && [[ -z $tmux_running ]]; then
+            if [[ -z $TMUX ]]; then
                 tmux new-session -s $selected_name -c $selected
                 exit 0
             fi
