@@ -19,7 +19,7 @@ in
     desktopItems = [
       (lib.makeDesktopItem {
         name = "OpenGameInstaller";
-        exec = "cd $out && OpenGameInstaller-linux-pt.AppImage %U";
+        exec = "OpenGameInstaller %U";
         icon = "opengameinstaller";
         desktopName = "OpenGameInstaller";
         comment = "OpenGameInstaller desktop";
@@ -29,6 +29,5 @@ in
       })
     ];
     extraInstallCommands = ''
-      # mkdir -p $HOME/.local/share/OpenGameInstaller
     '';
   }

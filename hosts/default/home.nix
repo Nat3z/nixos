@@ -28,6 +28,7 @@ in {
   # Extra Packages
   home.packages = [
     opengameinstaller 
+    pkgs.steamtinkerlaunch
   ];
   
   # set source to be the dotfiles directory/the flake's name
