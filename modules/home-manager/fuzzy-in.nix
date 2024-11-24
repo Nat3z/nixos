@@ -5,7 +5,7 @@
             if [[ $# -eq 1 ]]; then
                 selected=$1
             else
-                selected=$(fd --type f --hidden --exclude .git | fzf-tmux)
+                selected=$(fd --type f --exclude .git | fzf-tmux)
             fi
 
             if [[ -z $selected ]]; then
