@@ -19,7 +19,7 @@ in
     desktopItems = [
       (lib.makeDesktopItem {
         name = "OpenGameInstaller";
-        exec = "cd $HOME/.local/share/OpenGameInstaller && OpenGameInstaller-linux-pt.AppImage %U";
+        exec = "cd $out && OpenGameInstaller-linux-pt.AppImage %U";
         icon = "opengameinstaller";
         desktopName = "OpenGameInstaller";
         comment = "OpenGameInstaller desktop";
