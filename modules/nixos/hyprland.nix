@@ -65,11 +65,11 @@ in
           # first is vesktop. 
           move_windows_to_workspace 'vesktop' 1
           # second is always primary items.
-          move_windows_to_workspace 'org.vinegarhq.Sober' 2
-          move_windows_to_workspace 'Code' 2
-          move_windows_to_workspace 'star-rail.exe' 2
+          move_windows_to_workspace 'org.vinegarhq.Sober' 3
+          move_windows_to_workspace 'Code' 3
+          move_windows_to_workspace 'star-rail.exe' 3
           # third is always secondary items.
-          move_windows_to_workspace 'zen-alpha' 3
+          move_windows_to_workspace 'zen-alpha' 2
           # fifth is always steam.
           move_windows_to_workspace 'steam' 5
         '')
