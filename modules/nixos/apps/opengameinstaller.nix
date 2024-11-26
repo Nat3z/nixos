@@ -1,13 +1,13 @@
 { lib, pkgs, ... }:
 let
   appimage = pkgs.fetchurl {
-    url = "https://github.com/Nat3z/OpenGameInstaller/releases/download/v1.6.3/OpenGameInstaller-linux-pt.AppImage";
-    sha256 = "sha256-4hD+y4lsSo9jCtH9h/21BXsO2nNuy2bJBPSU3pXtwvA";
+    url = "https://github.com/Nat3z/OpenGameInstaller/releases/download/v1.6.4/OpenGameInstaller-linux-pt.AppImage";
+    sha256 = "sha256-htuyCOdaRRMhinab6JDc5zoXABY0UhgvM/jUKZyE2qE=";
   };
 in
   pkgs.appimageTools.wrapType2 {
     name = "OpenGameInstaller";
-    version = "1.6.3";
+    version = "1.6.4";
     src = appimage;
     extraPkgs = pkgs: [ pkgs.bun pkgs.unzip pkgs.unrar pkgs.wineWowPackages.stable ];
     meta = {
