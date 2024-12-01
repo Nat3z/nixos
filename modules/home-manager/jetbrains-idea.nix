@@ -2,9 +2,8 @@
 {
   home.packages = with pkgs; [
     jetbrains.idea-ultimate
-    (nerdfonts.override { fonts = [ "JetBrainsMono" ]; })
+    nerd-fonts.jetbrains-mono
   ];
-
   fonts.fontconfig.enable = true;
 
 }
