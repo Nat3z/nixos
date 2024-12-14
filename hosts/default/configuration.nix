@@ -86,6 +86,10 @@ in
     pulseaudio
     libglvnd
   ];
+
+  fonts.packages = with pkgs; [
+    nerd-fonts.jetbrains-mono
+  ];
   environment.sessionVariables = {
     LD_LIBRARY_PATH = lib.makeLibraryPath [
       pkgs.libglvnd

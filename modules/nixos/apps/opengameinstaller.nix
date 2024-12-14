@@ -6,7 +6,7 @@ let
   };
 in
   pkgs.appimageTools.wrapType2 {
-    name = "OpenGameInstaller";
+    pname = "OpenGameInstaller";
     version = "1.6.4";
     src = appimage;
     extraPkgs = pkgs: [ pkgs.bun pkgs.unzip pkgs.unrar pkgs.wineWowPackages.stable ];
