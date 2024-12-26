@@ -4,6 +4,7 @@
     ../../modules/home-manager/rebuild.nix
     ../../modules/home-manager/tmux.nix
     ../../modules/home-manager/zsh.nix
+    ../../modules/home-manager/fuzzy-in.nix
     ../../modules/home-manager/kitty.nix
   ];
 
