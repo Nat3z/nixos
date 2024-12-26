@@ -14,7 +14,8 @@
     useTheme = "catppuccin_mocha";
   };
 
-  home.packages = [
+  home.packages = with pkgs; [
+    fzf
   ];
 
   programs.lazygit.enable = true;
