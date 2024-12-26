@@ -13,6 +13,10 @@
     enableZshIntegration = true;
     useTheme = "catppuccin_mocha";
   };
+  programs.zsh.initExtra = ''
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+    export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
+  '';
 
   home.packages = with pkgs; [
     fzf
