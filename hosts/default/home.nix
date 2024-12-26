@@ -3,7 +3,6 @@
 let
   gitCredentials = import ../../credentials/git.nix;
   opengameinstaller = import ../../modules/nixos/apps/opengameinstaller.nix { inherit lib pkgs; };
-
 in {
 
   imports = [
