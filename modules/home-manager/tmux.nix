@@ -63,7 +63,7 @@
       bind-key -T copy-mode-vi 'C-k' select-pane -U
       bind-key -T copy-mode-vi 'C-l' select-pane -R
       bind-key -T copy-mode-vi 'C-\' select-pane -l
-      bind-key -n 'C-Left' if-shell "$is_vim" 'display-message "is vim"' 'display-message "is NOT vim"'
+      bind-key -n 'C-g' if-shell "$is_vim" 'display-message "is vim"' 'display-message "is NOT vim"'
     '';
   };
 }
