@@ -15,7 +15,7 @@
   };
   programs.zsh.initExtra = ''
     eval "$(/opt/homebrew/bin/brew shellenv)"
-    export PATH="/opt/homebrew/opt/node@22/bin:$PATH"
+    export PATH="/opt/homebrew/opt/node@22/bin:/Applications/Ghostty.app/Contents/MacOS:$PATH
   '';
 
   home.packages = with pkgs; [
