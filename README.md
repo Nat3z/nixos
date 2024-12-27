@@ -22,4 +22,5 @@ Additionally,
 | System Name | Description                       | Modules + Setup                                   |
 | ----------- | --------------------------------- | ------------------------------------------------- |
 | default     | My Gaming Laptop/Personal Desktop | Uses the Programming Module, Hyprland, KDE Plasma |
+| darwin      | Programming Laptop and School     | Uses custom zsh and tmux                          |
 |             |                                   |                                                   |
