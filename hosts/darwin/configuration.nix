@@ -88,11 +88,8 @@
 
   bundles.yabai-skhd.enable = true;
 
-  darwin.patches = {
-    enable = true;
-    fastDockAnimation = true;
-    disableAccentKeyboard = true;
-  };
+  # put patches like fast dock and accent keyboard
+  darwin.patches.enable = true;
 
   home-manager = {
     backupFileExtension = "backup";

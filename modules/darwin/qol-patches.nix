@@ -12,8 +12,16 @@ in
   options.darwin.patches = {
     enable = mkEnableOption "quality of life patches for macOS";
 
-    fastDockAnimation = mkEnableOption "Faster Dock Animation";
-    disableAccentKeyboard = mkEnableOption "Disable the Accent keyboard";
+    fastDockAnimation = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Faster Dock Animation";
+    };
+    disableAccentKeyboard = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Disable the Accent keyboard";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -23,6 +31,7 @@ in
           enable = true;
           text = ''
             defaults write com.apple.dock autohide-delay -float 0; killall Dock
+            echo "Fast Dock Animation enabled"
           '';
         };
       }
@@ -31,6 +40,7 @@ in
           enable = true;
           text = ''
             defaults write -g ApplePressAndHoldEnabled -bool false
+            echo "Accent keyboard disabled"
           '';
         };
       };
