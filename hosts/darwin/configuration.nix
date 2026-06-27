@@ -14,6 +14,7 @@
     ../../modules/darwin/bundles/devtools-brew.nix
     ../../modules/darwin/bundles/desktop-apps.nix
     ../../modules/darwin/bundles/yabai-skhd.nix
+    ../../modules/darwin/qol-patches.nix
     inputs.nix-homebrew.darwinModules.nix-homebrew
   ];
 
@@ -86,6 +87,12 @@
   };
 
   bundles.yabai-skhd.enable = true;
+
+  darwin.patches = {
+    enable = true;
+    fastDockAnimation = true;
+    disableAccentKeyboard = true;
+  };
 
   home-manager = {
     backupFileExtension = "backup";
