@@ -37,7 +37,7 @@ in
         fn - 2 : yabai -m space --focus 2
         fn - 3 : yabai -m space --focus 3
         fn - 4 : yabai -m space --focus 4
-        fn - 5 : yabai -m space --focus 5'
+        fn - 5 : yabai -m space --focus 5
 
         fn + shift - 1 : yabai -m window --space 1
         fn + shift - 2 : yabai -m window --space 2
