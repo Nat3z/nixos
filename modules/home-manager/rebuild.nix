@@ -33,8 +33,9 @@ in
 
       ${lib.optionalString pkgs.stdenv.isDarwin ''
         echo "Restarting skhd.."
-        killall skhd
         skhd --uninstall-service
+        killall skhd
+        skhd --install-service
       ''}
     '')
 
