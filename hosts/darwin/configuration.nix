@@ -35,7 +35,7 @@
   };
 
   environment.systemPackages = [
-    # system package stuff
+    inputs.helium.packages.${system}.default
   ];
 
   bundles.programming = {
