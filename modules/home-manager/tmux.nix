@@ -70,7 +70,7 @@
       bind-key -n 'C-j' if -F '#{m/r:(^|/)(g?view|n?vim?x?)(diff)?$,#{pane_current_command}}' 'send-keys C-j'  'select-pane -D'
       bind-key -n 'C-k' if -F '#{m/r:(^|/)(g?view|n?vim?x?)(diff)?$,#{pane_current_command}}' 'send-keys C-k'  'select-pane -U'
       bind-key -n 'C-l' if -F '#{m/r:(^|/)(g?view|n?vim?x?)(diff)?$,#{pane_current_command}}' 'send-keys C-l'  'select-pane -R'
-      bind-key -n 'C-\\' if -F '#{m/r:(^|/)(g?view|n?vim?x?)(diff)?$,#{pane_current_command}}' 'send-keys C-\\' 'select-pane -l'
+      bind-key -n 'C-\' if -F '#{m/r:(^|/)(g?view|n?vim?x?)(diff)?$,#{pane_current_command}}' 'send-keys C-\' 'select-pane -l'
 
       bind-key -T copy-mode-vi 'C-h' select-pane -L
       bind-key -T copy-mode-vi 'C-j' select-pane -D
