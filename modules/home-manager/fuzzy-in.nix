@@ -11,23 +11,30 @@
             if [[ -z $selected ]]; then
                 exit 0
             fi
-            selected_name=$(basename "$selected" | tr . _)
-            # check if a tmux session already exists
-            if tmux has-session -t=$selected_name 2> /dev/null; then
-                tmux attach-session -t $selected_name
-                exit 0
+
+            # fd --base-directory returns paths relative to ~.  tmux new-session -c
+            # resolves relative paths from the tmux server/current pane, so make it
+            # absolute or new sessions may start in the wrong directory.
+            if [[ "$selected" != /* ]]; then
+                selected="$HOME/$selected"
             fi
+
+            selected_name=$(basename "$selected" | tr . _)
 
             if [[ -z $TMUX ]]; then
-                tmux new-session -s $selected_name -c $selected
+                if tmux has-session -t="$selected_name" 2> /dev/null; then
+                    tmux attach-session -t "$selected_name"
+                else
+                    tmux new-session -s "$selected_name" -c "$selected"
+                fi
                 exit 0
             fi
 
-            if ! tmux has-session -t=$selected_name 2> /dev/null; then
-                tmux new-session -ds $selected_name -c $selected
+            if ! tmux has-session -t="$selected_name" 2> /dev/null; then
+                tmux new-session -ds "$selected_name" -c "$selected"
             fi
 
-            tmux switch-client -t $selected_name
+            tmux switch-client -t "$selected_name"
         '')
     ];
 }
