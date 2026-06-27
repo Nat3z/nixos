@@ -3,10 +3,12 @@
   pkgs,
   username,
   flakeName,
-  system,
   inputs,
   ...
 }:
+let
+  system = pkgs.stdenv.hostPlatform.system;
+in
 {
   imports = [
     ../../modules/nixos/bundles/programming.nix
