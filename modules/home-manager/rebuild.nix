@@ -1,4 +1,11 @@
-{ config, pkgs, flakeName, ... }:
+{
+  config,
+  pkgs,
+  flakeName,
+  isDarwin,
+  lib,
+  ...
+}:
 let
   homeDir = config.home.homeDirectory;
   nixConfigDir = "${homeDir}/nix-config";
@@ -24,6 +31,12 @@ in
 
       echo "Rebuild successful, committing changes."
       git -C ${nixConfigDir} commit -m "Rebuild: ${flakeName} $(date)" || true
+
+      ${lib.optionalString isDarwin ''
+        echo "Restarting skhd.."
+        killall skhd
+        skhd --uninstall-service
+      ''}
     '')
 
     (pkgs.writeShellScriptBin "update" ''
