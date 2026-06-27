@@ -2,7 +2,6 @@
   config,
   pkgs,
   flakeName,
-  isDarwin,
   lib,
   ...
 }:
@@ -32,7 +31,7 @@ in
       echo "Rebuild successful, committing changes."
       git -C ${nixConfigDir} commit -m "Rebuild: ${flakeName} $(date)" || true
 
-      ${lib.optionalString isDarwin ''
+      ${lib.optionalString pkgs.stdenv.isDarwin ''
         echo "Restarting skhd.."
         killall skhd
         skhd --uninstall-service
