@@ -36,6 +36,7 @@ in
       codex = mkEnableOption "Codex";
       claude = mkEnableOption "Claude Code";
       pi = mkEnableOption "pi";
+      opencode = mkEnableOption "OpenCode";
     };
     ghostty = {
       enable = mkEnableOption "Ghostty";
@@ -137,6 +138,15 @@ in
       }
       // optionalAttrs isDarwin {
         homebrew.casks = [ "claude-code" ];
+      }
+    )
+
+    (
+      mkIf (cfg.ai.opencode || cfg.ai.all) {
+        environment.systemPackages = optional (!isDarwin) pkgs.opencode;
+      }
+      // optionalAttrs isDarwin {
+        homebrew.casks = [ "opencode" ];
       }
     )
     (

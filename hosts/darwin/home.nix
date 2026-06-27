@@ -1,4 +1,12 @@
-{ config, pkgs, flakeName, lib, system, inputs, ... }@extra:
+{
+  config,
+  pkgs,
+  flakeName,
+  lib,
+  system,
+  inputs,
+  ...
+}@extra:
 {
   imports = [
     ../../modules/home-manager/rebuild.nix
@@ -6,7 +14,6 @@
     ../../modules/home-manager/fuzzy-in.nix
   ];
 
-
   programs.home-manager.enable = true;
-  home.stateVersion = "25.05"; 
+  home.stateVersion = "25.05";
 }
