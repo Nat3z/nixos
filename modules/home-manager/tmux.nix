@@ -5,7 +5,11 @@
     # shortcut = "a";
     # aggressiveResize = true; -- Disabled to be iTerm-friendly
     baseIndex = 1;
-    newSession = true;
+    # Avoid putting `new-session` in tmux.conf; it makes reloads/source-file flaky
+    # and can create an extra session before your real one starts.
+    newSession = false;
+    # These bindings below target copy-mode-vi, so make tmux use vi copy mode.
+    keyMode = "vi";
     # Stop tmux+escape craziness.
     escapeTime = 0;
     # Force tmux to use /tmp for sockets (WSL2 compat)
@@ -17,7 +21,7 @@
       {
         plugin = tmuxPlugins.catppuccin;
         extraConfig = ''
-          set -g @catppuccin_flavour 'mocha'
+          set -g @catppuccin_flavor 'mocha'
           set -g @catppuccin_window_tabs_enabled on
           set -g @catppuccin_date_time "%m-%d-%Y %I:%M %p"
         '';
@@ -33,7 +37,6 @@
       set -ga terminal-overrides ",*256col*:Tc"
       set -ga terminal-overrides '*:Ss=\E[%p1%d q:Se=\E[ q'
       set-environment -g COLORTERM "truecolor"
-      set -g @catppuccin_flavor 'mocha'
 
       # Mouse works as expected
       set-option -g mouse on
