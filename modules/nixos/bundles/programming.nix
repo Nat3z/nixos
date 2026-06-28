@@ -19,6 +19,13 @@ let
       default = false;
       inherit description;
     };
+  enabledBoolOpt =
+    description:
+    mkOption {
+      type = types.bool;
+      default = true;
+      inherit description;
+    };
 in
 {
   options.bundles.programming = {
@@ -39,12 +46,12 @@ in
       enable = boolOpt "Zsh";
     };
     ai = {
-      all = boolOpt "All AI tools";
-      codex = boolOpt "Codex";
-      claude = boolOpt "Claude Code";
-      pi = boolOpt "pi";
-      opencode = boolOpt "OpenCode";
-      codex-app = boolOpt "Codex App (MacOS Only)";
+      enable = boolOpt "AI tools";
+      codex = enabledBoolOpt "Codex";
+      claude = enabledBoolOpt "Claude Code";
+      pi = enabledBoolOpt "pi";
+      opencode = enabledBoolOpt "OpenCode";
+      codex-app = enabledBoolOpt "Codex App (MacOS Only)";
     };
     ghostty = {
       enable = boolOpt "Ghostty";
@@ -54,40 +61,26 @@ in
     };
     buildchains = {
       enable = boolOpt "common buildchains, language runtimes, and package managers";
-      essentials.enable = mkOption {
-        type = types.bool;
-        default = true;
-        description = "Install common CLI/dev essentials like jq, ripgrep, fd, cloc, cmake, ninja, pkg-config, and protobuf.";
+      essentials = {
+        enable = enabledBoolOpt "common CLI/dev essentials like jq, ripgrep, fd, cloc, cmake, ninja, pkg-config, and protobuf";
       };
-      zig.enable = mkOption {
-        type = types.bool;
-        default = true;
-        description = "Install Zig.";
+      zig = {
+        enable = enabledBoolOpt "Zig";
       };
-      node.enable = mkOption {
-        type = types.bool;
-        default = true;
-        description = "Install Node.js 22.";
+      node = {
+        enable = enabledBoolOpt "Node.js 22";
       };
-      bun.enable = mkOption {
-        type = types.bool;
-        default = true;
-        description = "Install Bun.";
+      bun = {
+        enable = enabledBoolOpt "Bun";
       };
-      go.enable = mkOption {
-        type = types.bool;
-        default = true;
-        description = "Install Go.";
+      go = {
+        enable = enabledBoolOpt "Go";
       };
-      rust.enable = mkOption {
-        type = types.bool;
-        default = true;
-        description = "Install rustup.";
+      rust = {
+        enable = enabledBoolOpt "rustup";
       };
-      python.enable = mkOption {
-        type = types.bool;
-        default = false;
-        description = "Install Python 3.";
+      python = {
+        enable = enabledBoolOpt "Python 3";
       };
     };
     terminal-shortcuts = {
@@ -108,10 +101,10 @@ in
           cursor-cli
         ]
         ++ optionals cfg.ghostty.enable [ ghostty ]
-        ++ optional ((cfg.ai.claude || cfg.ai.all) && !isDarwin) claude-code
-        ++ optional ((cfg.ai.opencode || cfg.ai.all) && !isDarwin) opencode
-        ++ optional ((cfg.ai.codex || cfg.ai.all) && !isDarwin) codex
-        ++ optional ((cfg.ai.pi || cfg.ai.all) && !isDarwin) pi-coding-agent
+        ++ optional ((cfg.ai.enable && cfg.ai.claude) && !isDarwin) claude-code
+        ++ optional ((cfg.ai.enable && cfg.ai.opencode) && !isDarwin) opencode
+        ++ optional ((cfg.ai.enable && cfg.ai.codex) && !isDarwin) codex
+        ++ optional ((cfg.ai.enable && cfg.ai.pi) && !isDarwin) pi-coding-agent
         ++ optionals cfg.zsh.enable [
           zsh
           fzf
@@ -143,17 +136,17 @@ in
 
     (optionalAttrs isDarwin {
       homebrew.brews =
-        optional (cfg.ai.opencode || cfg.ai.all) "opencode"
-        ++ optional (cfg.ai.pi || cfg.ai.all) "pi-coding-agent";
+        optional (cfg.ai.enable && cfg.ai.opencode) "opencode"
+        ++ optional (cfg.ai.enable && cfg.ai.pi) "pi-coding-agent";
 
       homebrew.casks =
         optionals cfg.cursor.enable [
           "cursor"
           "cursor-cli"
         ]
-        ++ optional (cfg.ai.claude || cfg.ai.all) "claude-code"
-        ++ optional (cfg.ai.codex || cfg.ai.all) "codex"
-        ++ optional (cfg.ai.codex-app && isDarwin) "codex-app";
+        ++ optional (cfg.ai.enable && cfg.ai.claude) "claude-code"
+        ++ optional (cfg.ai.enable && cfg.ai.codex) "codex"
+        ++ optional (cfg.ai.enable && cfg.ai.codex-app) "codex-app";
     })
 
     (mkIf (cfg.neovim.enable && cfg.neovim.default) {
