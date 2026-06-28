@@ -142,15 +142,17 @@ in
     }
 
     (optionalAttrs isDarwin {
+      homebrew.formulae =
+        optional (cfg.ai.opencode || cfg.ai.all) "opencode"
+        ++ optional (cfg.ai.pi || cfg.ai.all) "pi-coding-agent";
+
       homebrew.casks =
         optionals cfg.cursor.enable [
           "cursor"
           "cursor-cli"
         ]
         ++ optional (cfg.ai.claude || cfg.ai.all) "claude-code"
-        ++ optional (cfg.ai.opencode || cfg.ai.all) "opencode"
         ++ optional (cfg.ai.codex || cfg.ai.all) "codex"
-        ++ optional (cfg.ai.pi || cfg.ai.all) "pi-coding-agent"
         ++ optional (cfg.ai.codex-app && isDarwin) "codex-app";
     })
 
