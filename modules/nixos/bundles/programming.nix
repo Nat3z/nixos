@@ -12,40 +12,48 @@ with lib;
 let
   cfg = config.bundles.programming;
   system = pkgs.stdenv.hostPlatform.system;
+  boolOpt =
+    description:
+    mkOption {
+      type = types.bool;
+      default = false;
+      inherit description;
+    };
 in
 {
   options.bundles.programming = {
-    enable = mkEnableOption "Programming tools";
+    enable = boolOpt "Programming tools";
     neovim = {
-      enable = mkEnableOption "Neovim";
-      default = mkEnableOption "Set Neovim as default editor";
+      enable = boolOpt "Neovim";
+      default = boolOpt "Set Neovim as default editor";
     };
     vscode = {
-      enable = mkEnableOption "Visual Studio Code";
-      default = mkEnableOption "Set Visual Studio Code as default editor";
+      enable = boolOpt "Visual Studio Code";
+      default = boolOpt "Set Visual Studio Code as default editor";
     };
     cursor = {
-      enable = mkEnableOption "Cursor";
-      default = mkEnableOption "Set Cursor as default editor";
+      enable = boolOpt "Cursor";
+      default = boolOpt "Set Cursor as default editor";
     };
     zsh = {
-      enable = mkEnableOption "Zsh";
+      enable = boolOpt "Zsh";
     };
     ai = {
-      all = mkEnableOption "All AI tools";
-      codex = mkEnableOption "Codex";
-      claude = mkEnableOption "Claude Code";
-      pi = mkEnableOption "pi";
-      opencode = mkEnableOption "OpenCode";
+      all = boolOpt "All AI tools";
+      codex = boolOpt "Codex";
+      claude = boolOpt "Claude Code";
+      pi = boolOpt "pi";
+      opencode = boolOpt "OpenCode";
+      codex-app = boolOpt "Codex App (MacOS Only)";
     };
     ghostty = {
-      enable = mkEnableOption "Ghostty";
+      enable = boolOpt "Ghostty";
     };
     lsp = {
-      nixos = mkEnableOption "Adds Nixd LSP";
+      nixos = boolOpt "Adds Nixd LSP";
     };
     buildchains = {
-      enable = mkEnableOption "common buildchains, language runtimes, and package managers";
+      enable = boolOpt "common buildchains, language runtimes, and package managers";
       essentials.enable = mkOption {
         type = types.bool;
         default = true;
@@ -83,7 +91,7 @@ in
       };
     };
     terminal-shortcuts = {
-      enable = mkEnableOption "Terminal Aliases";
+      enable = boolOpt "Terminal Aliases";
     };
   };
 
@@ -142,7 +150,8 @@ in
         ++ optional (cfg.ai.claude || cfg.ai.all) "claude-code"
         ++ optional (cfg.ai.opencode || cfg.ai.all) "opencode"
         ++ optional (cfg.ai.codex || cfg.ai.all) "codex"
-        ++ optional (cfg.ai.pi || cfg.ai.all) "pi-coding-agent";
+        ++ optional (cfg.ai.pi || cfg.ai.all) "pi-coding-agent"
+        ++ optional (cfg.ai.codex-app && isDarwin) "codex-app";
     })
 
     (mkIf (cfg.neovim.enable && cfg.neovim.default) {

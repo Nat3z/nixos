@@ -54,6 +54,7 @@ in
     };
     zsh.enable = true;
     buildchains.enable = true;
+    ai.all = true;
     homebrew = {
       enable = true;
       shell.enable = true;
