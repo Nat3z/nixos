@@ -98,74 +98,76 @@ in
   };
 
   config = mkIf cfg.enable (mkMerge [
-    (mkIf cfg.neovim.enable {
-      environment.systemPackages = [
-        (if pkgs.stdenv.isDarwin then pkgs.neovim else inputs.neovim-nixos.packages."${system}".nvim)
-      ];
-      environment.variables.EDITOR = (mkIf cfg.neovim.default "nvim");
-    })
-    (mkIf cfg.vscode.enable {
-      environment.systemPackages = [
-        pkgs.vscode.fhs
-      ];
-      environment.variables.EDITOR = (mkIf cfg.vscode.default "code");
-    })
-    (mkIf cfg.cursor.enable (
-      {
-        environment.systemPackages = optionals (!isDarwin) [
-          pkgs.code-cursor
-          pkgs.cursor-cli
-        ];
-        environment.variables.EDITOR = mkIf cfg.cursor.default "cursor";
-      }
-      // optionalAttrs isDarwin {
-        homebrew.casks = [
+    {
+      environment.systemPackages = (
+        with pkgs;
+        optional cfg.neovim.enable (
+          if isDarwin then neovim else inputs.neovim-nixos.packages.${system}.nvim
+        )
+        ++ optionals cfg.vscode.enable [ vscode.fhs ]
+        ++ optionals (cfg.cursor.enable && !isDarwin) [
+          code-cursor
+          cursor-cli
+        ]
+        ++ optionals cfg.ghostty.enable [ ghostty ]
+        ++ optional ((cfg.ai.claude || cfg.ai.all) && !isDarwin) claude-code
+        ++ optional ((cfg.ai.opencode || cfg.ai.all) && !isDarwin) opencode
+        ++ optional ((cfg.ai.codex || cfg.ai.all) && !isDarwin) codex
+        ++ optional ((cfg.ai.pi || cfg.ai.all) && !isDarwin) pi-coding-agent
+        ++ optionals cfg.zsh.enable [
+          zsh
+          fzf
+        ]
+        ++ optionals cfg.lsp.nixos [
+          nixd
+          inputs.alejandra.defaultPackage.${system}
+        ]
+        ++ optionals (cfg.buildchains.enable && cfg.buildchains.essentials.enable) [
+          jq
+          ripgrep
+          fd
+          cloc
+          cmake
+          ninja
+          pkg-config
+          nixfmt
+          protobuf
+        ]
+        ++ optional (cfg.buildchains.enable && cfg.buildchains.zig.enable) zig
+        ++ optional (cfg.buildchains.enable && cfg.buildchains.node.enable) nodejs_22
+        ++ optional (cfg.buildchains.enable && cfg.buildchains.nodeLatest.enable) nodejs_latest
+        ++ optional (cfg.buildchains.enable && cfg.buildchains.bun.enable) bun
+        ++ optional (cfg.buildchains.enable && cfg.buildchains.pnpm.enable) pnpm
+        ++ optional (cfg.buildchains.enable && cfg.buildchains.go.enable) go
+        ++ optional (cfg.buildchains.enable && cfg.buildchains.rust.enable) rustup
+        ++ optional (cfg.buildchains.enable && cfg.buildchains.python.enable) python3
+        ++ devenv
+      );
+    }
+
+    (optionalAttrs isDarwin {
+      homebrew.casks =
+        optionals cfg.cursor.enable [
           "cursor"
           "cursor-cli"
-        ];
-      }
-    ))
-
-    (mkIf cfg.ghostty.enable {
-      environment.systemPackages = [
-        pkgs.ghostty
-      ];
+        ]
+        ++ optional (cfg.ai.claude || cfg.ai.all) "claude-code"
+        ++ optional (cfg.ai.opencode || cfg.ai.all) "opencode"
+        ++ optional (cfg.ai.codex || cfg.ai.all) "codex"
+        ++ optional (cfg.ai.pi || cfg.ai.all) "pi-coding-agent";
     })
 
-    (
-      mkIf (cfg.ai.claude || cfg.ai.all) {
-        environment.systemPackages = optional (!isDarwin) pkgs.claude-code;
-      }
-      // optionalAttrs isDarwin {
-        homebrew.casks = [ "claude-code" ];
-      }
-    )
+    (mkIf (cfg.neovim.enable && cfg.neovim.default) {
+      environment.variables.EDITOR = "nvim";
+    })
 
-    (
-      mkIf (cfg.ai.opencode || cfg.ai.all) {
-        environment.systemPackages = optional (!isDarwin) pkgs.opencode;
-      }
-      // optionalAttrs isDarwin {
-        homebrew.casks = [ "opencode" ];
-      }
-    )
-    (
-      mkIf (cfg.ai.codex || cfg.ai.all) {
-        environment.systemPackages = optional (!isDarwin) pkgs.codex;
-      }
-      // optionalAttrs isDarwin {
-        homebrew.casks = [ "codex" ];
-      }
-    )
+    (mkIf (cfg.vscode.enable && cfg.vscode.default) {
+      environment.variables.EDITOR = "code";
+    })
 
-    (
-      mkIf (cfg.ai.pi || cfg.ai.all) {
-        environment.systemPackages = optional (!isDarwin) pkgs.pi-coding-agent;
-      }
-      // optionalAttrs isDarwin {
-        homebrew.casks = [ "pi-coding-agent" ];
-      }
-    )
+    (mkIf (cfg.cursor.enable && cfg.cursor.default) {
+      environment.variables.EDITOR = "cursor";
+    })
 
     (mkIf cfg.terminal-shortcuts.enable {
       environment.shellAliases = {
@@ -177,10 +179,6 @@ in
     })
 
     (mkIf cfg.zsh.enable {
-      environment.systemPackages = [
-        pkgs.zsh
-        pkgs.fzf
-      ];
       programs.zsh.enable = true;
       environment.shellAliases = {
         cd = "z";
@@ -225,37 +223,10 @@ in
     })
 
     (mkIf cfg.lsp.nixos {
-      environment.systemPackages = [
-        pkgs.nixd
-        inputs.alejandra.defaultPackage."${system}"
-      ];
       nix.nixPath = [
         "nixpkgs=${inputs.nixpkgs}"
       ];
     })
-
-    (mkIf cfg.buildchains.enable {
-      environment.systemPackages =
-        with pkgs;
-        optionals cfg.buildchains.essentials.enable [
-          jq
-          ripgrep
-          fd
-          cloc
-          cmake
-          ninja
-          pkg-config
-          nixfmt
-          protobuf
-        ]
-        ++ optional cfg.buildchains.zig.enable zig
-        ++ optional cfg.buildchains.node.enable nodejs_22
-        ++ optional cfg.buildchains.nodeLatest.enable nodejs_latest
-        ++ optional cfg.buildchains.bun.enable bun
-        ++ optional cfg.buildchains.pnpm.enable pnpm
-        ++ optional cfg.buildchains.go.enable go
-        ++ optional cfg.buildchains.rust.enable rustup
-        ++ optional cfg.buildchains.python.enable python3;
-    })
   ]);
+
 }
