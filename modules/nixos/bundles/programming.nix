@@ -61,20 +61,10 @@ in
         default = true;
         description = "Install Node.js 22.";
       };
-      nodeLatest.enable = mkOption {
-        type = types.bool;
-        default = false;
-        description = "Install the latest Node.js package. Disabled by default because it often misses binary cache and builds from source.";
-      };
       bun.enable = mkOption {
         type = types.bool;
         default = true;
         description = "Install Bun.";
-      };
-      pnpm.enable = mkOption {
-        type = types.bool;
-        default = true;
-        description = "Install pnpm.";
       };
       go.enable = mkOption {
         type = types.bool;
@@ -135,9 +125,7 @@ in
         ]
         ++ optional (cfg.buildchains.enable && cfg.buildchains.zig.enable) zig
         ++ optional (cfg.buildchains.enable && cfg.buildchains.node.enable) nodejs_22
-        ++ optional (cfg.buildchains.enable && cfg.buildchains.nodeLatest.enable) nodejs_latest
         ++ optional (cfg.buildchains.enable && cfg.buildchains.bun.enable) bun
-        ++ optional (cfg.buildchains.enable && cfg.buildchains.pnpm.enable) pnpm
         ++ optional (cfg.buildchains.enable && cfg.buildchains.go.enable) go
         ++ optional (cfg.buildchains.enable && cfg.buildchains.rust.enable) rustup
         ++ optional (cfg.buildchains.enable && cfg.buildchains.python.enable) python3

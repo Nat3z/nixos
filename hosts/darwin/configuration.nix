@@ -25,6 +25,10 @@ in
       "nix-command"
       "flakes"
     ];
+    trusted-users = [
+      "root"
+      username
+    ];
   };
 
   nixpkgs.hostPlatform = "aarch64-darwin";
