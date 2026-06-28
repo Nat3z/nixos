@@ -142,7 +142,7 @@ in
     }
 
     (optionalAttrs isDarwin {
-      homebrew.formulae =
+      homebrew.brews =
         optional (cfg.ai.opencode || cfg.ai.all) "opencode"
         ++ optional (cfg.ai.pi || cfg.ai.all) "pi-coding-agent";
 
