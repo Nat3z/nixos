@@ -59,7 +59,7 @@ in
         if git -C ${nixConfigDir} diff --cached --quiet; then
           echo "No changes to commit."
         else
-          git -C ${nixConfigDir} commit -m "chore(rebuild): $commit_name at $(date)"
+          git -C ${nixConfigDir} commit -m "$commit_name"
         fi
       else
         git -C ${nixConfigDir} commit -m "chore(rebuild): switch ${flakeName} at $(date)" || true
