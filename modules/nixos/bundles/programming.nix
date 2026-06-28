@@ -141,7 +141,7 @@ in
         ++ optional (cfg.buildchains.enable && cfg.buildchains.go.enable) go
         ++ optional (cfg.buildchains.enable && cfg.buildchains.rust.enable) rustup
         ++ optional (cfg.buildchains.enable && cfg.buildchains.python.enable) python3
-        ++ devenv
+        ++ optional cfg.buildchains.enable devenv
       );
     }
 
