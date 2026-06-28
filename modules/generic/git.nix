@@ -40,8 +40,7 @@ in
   config = lib.mkIf cfg.enable {
     home-manager.users.${username}.programs.git = {
       enable = true;
-      userName = cfg.config.user.name;
-      userEmail = cfg.config.user.email;
+      settings = cfg.config;
       signing = lib.mkIf cfg.signing.enable {
         signByDefault = true;
         key = cfg.signing.key;
