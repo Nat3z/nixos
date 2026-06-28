@@ -2,36 +2,47 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, inputs, lib, flakeName, username, ... }:
+{
+  config,
+  pkgs,
+  inputs,
+  lib,
+  flakeName,
+  username,
+  ...
+}:
 
 let
   credentials = import ./credentials.nix;
 in
 {
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-      ../../modules/nixos/cachix.nix
-      inputs.home-manager.nixosModules.default
-      inputs.aagl.nixosModules.default
+  imports = [
+    # Include the results of the hardware scan.
+    ./hardware-configuration.nix
+    ../../modules/nixos/cachix.nix
+    inputs.home-manager.nixosModules.default
+    inputs.aagl.nixosModules.default
 
-      ../../modules/nixos/basicuser.nix
-      ../../modules/nixos/bundles/programming.nix
-      ../../modules/nixos/hyprland.nix
+    ../../modules/nixos/basicuser.nix
+    ../../modules/generic/bundles/programming.nix
+    ../../modules/nixos/hyprland.nix
 
-      ../../modules/nixos/nvidia.nix
-      ../../modules/nixos/steam.nix
-      ../../modules/nixos/tailscale.nix
-      ../../modules/nixos/thunar.nix
-      ../../modules/nixos/keyring.nix
-      ../../modules/nixos/distrobox.nix
-    ];
+    ../../modules/nixos/nvidia.nix
+    ../../modules/nixos/steam.nix
+    ../../modules/nixos/tailscale.nix
+    ../../modules/nixos/thunar.nix
+    ../../modules/nixos/keyring.nix
+    ../../modules/nixos/distrobox.nix
+  ];
 
   userSetup.name = "${username}";
-  userSetup.extraGroups = [ "wheel" "networkmanager" ];
+  userSetup.extraGroups = [
+    "wheel"
+    "networkmanager"
+  ];
   userSetup.hostname = "nat-nix";
   userSetup.useAudio = true;
-  
+
   hyprland.enable = true;
   hyprland.useWaybar = true;
   hyprland.useWofi = true;
@@ -58,7 +69,6 @@ in
   programs.firefox.enable = true;
   programs.honkers-railway-launcher.enable = true;
   users.defaultUserShell = pkgs.zsh;
-
 
   environment.systemPackages = with pkgs; [
     lshw
@@ -100,4 +110,3 @@ in
   };
 
 }
-

@@ -11,12 +11,13 @@ let
 in
 {
   imports = [
-    ../../modules/nixos/bundles/programming.nix
+    ../../modules/generic/bundles/programming.nix
     ../../modules/darwin/bundles/homebrew-core.nix
     ../../modules/darwin/bundles/devtools-brew.nix
     ../../modules/darwin/bundles/desktop-apps.nix
     ../../modules/darwin/bundles/yabai-skhd.nix
     ../../modules/darwin/qol-patches.nix
+    ../../modules/generic/git.nix
     inputs.nix-homebrew.darwinModules.nix-homebrew
   ];
 
@@ -97,6 +98,12 @@ in
 
   # put patches like fast dock and accent keyboard
   darwin.patches.enable = true;
+
+  git-setup.enable = true;
+  git-setup.signing = {
+    enable = true;
+    key = "07ACD81DB7CBEE1F"; # TODO: change to ssh keys when swapped to new macbook
+  };
 
   home-manager = {
     backupFileExtension = "backup";
