@@ -20,13 +20,19 @@ in
           description = "GPG key path for signing commits";
         };
       };
-      config = lib.mkOption {
-        default = {
-          user.name = credentials.name;
-          user.email = credentials.email;
+      config = {
+        user = {
+          name = lib.mkOption {
+            type = lib.types.str;
+            default = credentials.name;
+            description = "Git user name";
+          };
+          email = lib.mkOption {
+            type = lib.types.str;
+            default = credentials.email;
+            description = "Git user email";
+          };
         };
-        type = lib.types.attrsOf lib.types.str;
-        description = "Global git configuration values";
       };
     };
   };
