@@ -21,6 +21,8 @@ in
     inputs.nix-homebrew.darwinModules.nix-homebrew
   ];
 
+  nix.package = pkgs.lixPackageSets.stable.lix;
+
   nix.settings = {
     experimental-features = [
       "nix-command"
