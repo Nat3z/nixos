@@ -36,6 +36,10 @@ in
 
   nixpkgs.hostPlatform = "aarch64-darwin";
   nixpkgs.config.allowUnfree = true;
+  # nix-darwin's manual builder still passes --toc-depth, which current
+  # nixos-render-docs rejects. Disable docs/uninstaller until upstream catches up.
+  documentation.enable = false;
+  system.tools.darwin-uninstaller.enable = false;
   system.primaryUser = username;
 
   users.users.nat = {

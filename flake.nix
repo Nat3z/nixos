@@ -19,7 +19,7 @@
       url = "github:schembriaiden/helium-browser-nix-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    alejandra.url = "github:kamadorueda/alejandra/3.0.0";
+    alejandra.url = "github:kamadorueda/alejandra/4.0.0";
     alejandra.inputs.nixpkgs.follows = "nixpkgs";
 
     neovim-nixos.url = "github:nat3z/neovim";
