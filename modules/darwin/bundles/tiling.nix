@@ -184,8 +184,8 @@ in
           default-root-container-layout = 'tiles'
           default-root-container-orientation = 'auto'
 
-          on-focus-changed = ['move-mouse window-lazy-center']
-          on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
+          on-focus-changed = []
+          on-focused-monitor-changed = []
           exec-on-workspace-change = ['/bin/bash', '-c', 'eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_facetime.sh "$AEROSPACE_FOCUSED_WORKSPACE"']
 
           automatically-unhide-macos-hidden-apps = false
