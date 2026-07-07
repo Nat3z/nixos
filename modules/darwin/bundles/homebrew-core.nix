@@ -3,10 +3,12 @@
 with lib;
 
 let
-  cfg = config.bundles.homebrew-core;
-in
-{
-  options.bundles.homebrew-core = {
+  legacy = config.bundles.homebrew-core;
+  cfg = config.bundles.programming.homebrew.core;
+  enabled = legacy.enable || cfg.enable;
+  pick = name: if cfg.enable then cfg.${name} else legacy.${name};
+
+  coreOptions = {
     enable = mkEnableOption "base nix-homebrew/homebrew integration";
 
     enableRosetta = mkOption {
@@ -42,22 +44,32 @@ in
       };
     };
   };
+in
+{
+  options = {
+    # Preferred location: Homebrew is support infrastructure for the
+    # Darwin programming bundle, so keep it nested there.
+    bundles.programming.homebrew.core = coreOptions;
 
-  config = mkIf cfg.enable {
+    # Backwards-compatible location. Prefer `bundles.programming.homebrew.core`.
+    bundles.homebrew-core = coreOptions;
+  };
+
+  config = mkIf enabled {
     nix-homebrew = {
       enable = true;
-      enableRosetta = cfg.enableRosetta;
+      enableRosetta = pick "enableRosetta";
       user = username;
-      mutableTaps = cfg.mutableTaps;
-      autoMigrate = cfg.autoMigrate;
+      mutableTaps = pick "mutableTaps";
+      autoMigrate = pick "autoMigrate";
     };
 
     homebrew = {
       enable = true;
       onActivation = {
-        autoUpdate = cfg.onActivation.autoUpdate;
-        cleanup = cfg.onActivation.cleanup;
-        upgrade = cfg.onActivation.upgrade;
+        autoUpdate = (pick "onActivation").autoUpdate;
+        cleanup = (pick "onActivation").cleanup;
+        upgrade = (pick "onActivation").upgrade;
       };
     };
   };

@@ -3,10 +3,18 @@
 with lib;
 
 let
-  cfg = config.bundles.desktop-apps;
-in
-{
-  options.bundles.desktop-apps = {
+  legacy = config.bundles.desktop-apps;
+  cfg = config.bundles.programming.desktop;
+  enabled = legacy.enable || cfg.enable;
+  use = category:
+    (legacy.enable && legacy.${category}.enable)
+    || (cfg.enable && cfg.${category}.enable);
+  extraTaps = legacy.extraTaps ++ cfg.extraTaps;
+  extraBrews = legacy.extraBrews ++ cfg.extraBrews;
+  extraCasks = legacy.extraCasks ++ cfg.extraCasks;
+  extraTrustedCasks = legacy.extraTrustedCasks ++ cfg.extraTrustedCasks;
+
+  desktopOptions = {
     enable = mkEnableOption "Homebrew cask desktop apps, fonts, and media tools";
 
     windowManagers.enable = mkOption {
@@ -87,38 +95,48 @@ in
       description = "Extra trusted casks for nix-homebrew.";
     };
   };
+in
+{
+  options = {
+    # Preferred location: GUI/productivity apps that support the workstation
+    # belong under the programming bundle instead of a separate top-level bundle.
+    bundles.programming.desktop = desktopOptions;
 
-  config = mkIf cfg.enable {
+    # Backwards-compatible location. Prefer `bundles.programming.desktop`.
+    bundles.desktop-apps = desktopOptions;
+  };
+
+  config = mkIf enabled {
     nix-homebrew.trust.casks =
-      optional (cfg.windowManagers.enable && cfg.sikarugir.enable) "sikarugir-app/sikarugir/sikarugir"
-      ++ cfg.extraTrustedCasks;
+      optional (use "windowManagers" && use "sikarugir") "sikarugir-app/sikarugir/sikarugir"
+      ++ extraTrustedCasks;
 
     homebrew = {
       taps =
-        optional (cfg.windowManagers.enable && cfg.sikarugir.enable) "sikarugir-app/sikarugir"
-        ++ cfg.extraTaps;
+        optional (use "windowManagers" && use "sikarugir") "sikarugir-app/sikarugir"
+        ++ extraTaps;
 
       brews =
-        optionals cfg.windowManagers.enable [
+        optionals (use "windowManagers") [
           "cliclick"
         ]
-        ++ optionals cfg.media.enable [
+        ++ optionals (use "media") [
           "ffmpeg"
           "imagesnap"
           "spicetify-cli"
         ]
-        ++ cfg.extraBrews;
+        ++ extraBrews;
 
       casks =
-        optional (cfg.windowManagers.enable && cfg.aerospace.enable) "aerospace"
-        ++ optional (cfg.media.enable) "audacity"
-        ++ optional (cfg.design.enable && cfg.figma.enable) "figma"
-        ++ optional (cfg.design.enable && cfg.finetune.enable) "finetune"
-        ++ optional cfg.fonts.enable "font-jetbrains-mono-nerd-font"
-        ++ optional (cfg.cad.enable && cfg.kicad.enable) "kicad"
-        ++ optional (cfg.sikarugir.enable) "sikarugir"
-        ++ optional (cfg.cursorcerer.enable) "cursorcerer"
-        ++ cfg.extraCasks;
+        optional (use "windowManagers" && use "aerospace") "aerospace"
+        ++ optional (use "media") "audacity"
+        ++ optional (use "design" && use "figma") "figma"
+        ++ optional (use "design" && use "finetune") "finetune"
+        ++ optional (use "fonts") "font-jetbrains-mono-nerd-font"
+        ++ optional (use "cad" && use "kicad") "kicad"
+        ++ optional (use "sikarugir") "sikarugir"
+        ++ optional (use "cursorcerer") "cursorcerer"
+        ++ extraCasks;
 
     };
   };

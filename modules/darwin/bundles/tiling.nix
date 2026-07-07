@@ -8,7 +8,10 @@
 with lib;
 
 let
-  cfg = config.bundles.tiling;
+  cfg = config.darwin.tiling;
+  enabled = cfg.enable;
+  use = name:
+    (cfg.enable && cfg.${name}.enable);
 
   yabaiSkhdConfig = ''
     # -------- Yabai shortcuts --------
@@ -97,9 +100,7 @@ let
     fn - e : osascript -e 'tell application "Finder" to make new Finder window to home'
     fn - b : pgrep -x "helium" && osascript -e 'tell application "System Events" to tell process "Helium" to click menu item "New Window" of menu "File" of menu bar item "File" of menu bar 1' || open -a "Helium"
   '';
-in
-{
-  options.bundles.tiling = {
+  tilingOptions = {
     enable = mkEnableOption "tiling window-management bundle";
 
     yabai.enable = mkOption {
@@ -120,24 +121,30 @@ in
       description = "Enable Skhd";
     };
   };
+in
+{
+  options = {
+    # Preferred location: window-management is part of the workstation/programming setup.
+    darwin.tiling = tilingOptions;
+  };
 
-  config = mkIf cfg.enable {
+  config = mkIf enabled {
     assertions = [
       {
-        assertion = !(cfg.yabai.enable && cfg.aerospace.enable);
-        message = "bundles.tiling.yabai.enable and bundles.tiling.aerospace.enable are mutually exclusive.";
+        assertion = !(use "yabai" && use "aerospace");
+        message = "Only one of yabai or aerospace may be enabled under bundles.programming.tiling.";
       }
       {
-        assertion = !cfg.yabai.enable || !cfg.aerospace.enable;
-        message = "neither yabai or aerospace are enabled when tiling is enabled.";
+        assertion = (use "yabai") || (use "aerospace");
+        message = "Enable either bundles.programming.tiling.yabai or bundles.programming.tiling.aerospace when tiling is enabled.";
       }
     ];
 
-    services.skhd = mkIf cfg.skhd.enable {
+    services.skhd = mkIf (use "skhd") {
       enable = true;
       skhdConfig = concatStringsSep "\n" (
-        optional cfg.yabai.enable yabaiSkhdConfig
-        ++ optional cfg.aerospace.enable aerospaceSkhdConfig
+        optional (use "yabai") yabaiSkhdConfig
+        ++ optional (use "aerospace") aerospaceSkhdConfig
         ++ [ appSkhdConfig ]
       );
     };
@@ -147,9 +154,9 @@ in
       casks = [ "aerospace" ];
     };
 
-    nix-homebrew.trust.casks = mkIf cfg.aerospace.enable [ "nikitabobko/tap/aerospace" ];
+    nix-homebrew.trust.casks = mkIf (use "aerospace") [ "nikitabobko/tap/aerospace" ];
 
-    services.yabai = mkIf cfg.yabai.enable {
+    services.yabai = mkIf (use "yabai") {
       enable = true;
       enableScriptingAddition = true;
       config = {
@@ -167,7 +174,7 @@ in
     };
 
     home-manager.users.${username} = {
-      home.file.".aerospace.toml" = mkIf cfg.aerospace.enable {
+      home.file.".aerospace.toml" = mkIf (use "aerospace") {
         force = true;
         text = ''
           config-version = 2

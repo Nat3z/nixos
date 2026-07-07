@@ -53,52 +53,59 @@ in
 
   bundles.programming = {
     enable = true;
+
+    # Editors / shell / terminal
     neovim.enable = true;
     cursor.enable = true;
     zsh.enable = true;
+    ghostty.enable = true;
+
+    # Toolchains / AI
     buildchains.enable = true;
     ai.enable = true;
-    ghostty.enable = true;
+
+    # Darwin package backend and Homebrew-only developer tools.
     homebrew = {
+      core = {
+        enable = true;
+        enableRosetta = true;
+        mutableTaps = true;
+        autoMigrate = true;
+        onActivation = {
+          autoUpdate = false;
+          cleanup = "uninstall";
+          upgrade = false;
+        };
+      };
+
       enable = true;
       shell.enable = true;
-      network.enable = false;
-      python.enable = false;
       cli.enable = true;
-      anaconda.enable = false;
       archives.enable = true;
+      # network.enable = false;
+      # python.enable = false;
+      # anaconda.enable = false;
+    };
+
+    # GUI apps that support the workstation.
+    desktop = {
+      enable = true;
+      media.enable = true;
+      design.enable = false;
+      fonts.enable = true;
+      # cad.enable = true;
+      # windowManagers.enable = true;
+      # sikarugir.enable = true;
+      # cursorcerer.enable = true;
+      # figma.enable = false;
+      # finetune.enable = false;
+      # kicad.enable = true;
     };
   };
-
-  bundles.homebrew-core = {
+  # Window-management setup.
+  darwin.tiling = {
     enable = true;
-    enableRosetta = true;
-    mutableTaps = true;
-    autoMigrate = true;
-    onActivation = {
-      autoUpdate = false;
-      cleanup = "uninstall";
-      upgrade = false;
-    };
-  };
-
-  bundles.desktop-apps = {
-    enable = true;
-    # windowManagers.enable = true;
-    media.enable = true;
-    design.enable = false;
-    # cad.enable = true;
-    fonts.enable = true;
-    # sikarugir.enable = true;
-    # cursorcerer.enable = true;
-    # figma.enable = false;
-    # finetune.enable = false;
-    # kicad.enable = true;
-  };
-
-  bundles.tiling = {
-    enable = true;
-    # yabai.enable = false; # BECAUSE WE'RE A SIPS FAMILY NOW
+    # yabai.enable = false; # BECAUSE WE'RE A SIPS FAMILY NOW (cause of college)
     aerospace.enable = true;
     skhd.enable = true;
   };
