@@ -15,7 +15,7 @@ in
     ../../modules/darwin/bundles/homebrew-core.nix
     ../../modules/darwin/bundles/devtools-brew.nix
     ../../modules/darwin/bundles/desktop-apps.nix
-    ../../modules/darwin/bundles/yabai-skhd.nix
+    ../../modules/darwin/bundles/tiling.nix
     ../../modules/darwin/qol-patches.nix
     ../../modules/generic/git.nix
     inputs.nix-homebrew.darwinModules.nix-homebrew
@@ -53,22 +53,19 @@ in
 
   bundles.programming = {
     enable = true;
-    neovim = {
-      enable = true;
-    };
-    cursor = {
-      enable = true;
-    };
+    neovim.enable = true;
+    cursor.enable = true;
     zsh.enable = true;
     buildchains.enable = true;
     ai.enable = true;
+    ghostty.enable = true;
     homebrew = {
       enable = true;
       shell.enable = true;
-      network.enable = true;
-      python.enable = true;
+      network.enable = false;
+      python.enable = false;
       cli.enable = true;
-      anaconda.enable = true;
+      anaconda.enable = false;
       archives.enable = true;
     };
   };
@@ -87,20 +84,24 @@ in
 
   bundles.desktop-apps = {
     enable = true;
-    windowManagers.enable = true;
+    # windowManagers.enable = true;
     media.enable = true;
-    design.enable = true;
-    cad.enable = true;
+    design.enable = false;
+    # cad.enable = true;
     fonts.enable = true;
-    aerospace.enable = true;
-    sikarugir.enable = true;
-    cursorcerer.enable = true;
-    figma.enable = true;
-    finetune.enable = true;
-    kicad.enable = true;
+    # sikarugir.enable = true;
+    # cursorcerer.enable = true;
+    # figma.enable = false;
+    # finetune.enable = false;
+    # kicad.enable = true;
   };
 
-  bundles.yabai-skhd.enable = true;
+  bundles.tiling = {
+    enable = true;
+    # yabai.enable = false; # BECAUSE WE'RE A SIPS FAMILY NOW
+    aerospace.enable = true;
+    skhd.enable = true;
+  };
 
   # put patches like fast dock and accent keyboard
   darwin.patches.enable = true;
@@ -108,8 +109,9 @@ in
   git-setup.enable = true;
   git-setup.signing = {
     enable = true;
-    key = "07ACD81DB7CBEE1F"; # TODO: change to ssh keys when swapped to new macbook
-  };
+    key = "/Users/nat/.ssh/id_ed25519.pub";
+    ssh = true;
+  }; 
 
   home-manager = {
     backupFileExtension = "backup";

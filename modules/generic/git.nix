@@ -17,8 +17,9 @@ in
         key = lib.mkOption {
           default = null;
           type = lib.types.nullOr lib.types.str;
-          description = "GPG key path for signing commits";
+          description = "Key path for signing commits";
         };
+        ssh = lib.mkEnableOption "Set SSH Signing";
       };
       config = {
         user = {
@@ -40,7 +41,12 @@ in
   config = lib.mkIf cfg.enable {
     home-manager.users.${username}.programs.git = {
       enable = true;
-      settings = cfg.config;
+      settings = lib.mkMerge [
+        cfg.config
+        (lib.mkIf cfg.signing.ssh {
+          gpg.format = "ssh"; 
+        })
+      ];
       signing = lib.mkIf cfg.signing.enable {
         signByDefault = true;
         key = cfg.signing.key;

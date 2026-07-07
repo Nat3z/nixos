@@ -21,42 +21,42 @@ let
 
     shell.enable = mkOption {
       type = types.bool;
-      default = true;
+      default = false;
       description = "Install shell-related Homebrew tools.";
     };
     hardware.enable = mkOption {
       type = types.bool;
-      default = true;
+      default = false;
       description = "Install embedded/hardware tooling.";
     };
     network.enable = mkOption {
       type = types.bool;
-      default = true;
+      default = false;
       description = "Install networking/tunnel tooling.";
     };
     python.enable = mkOption {
       type = types.bool;
-      default = true;
+      default = false;
       description = "Install Homebrew Python-oriented tooling.";
     };
     cli.enable = mkOption {
       type = types.bool;
-      default = true;
+      default = false;
       description = "Install miscellaneous CLI developer tools.";
     };
     ai.enable = mkOption {
       type = types.bool;
-      default = true;
+      default = false;
       description = "Install AI CLI tools managed by Homebrew.";
     };
     anaconda.enable = mkOption {
       type = types.bool;
-      default = true;
+      default = false;
       description = "Install Anaconda cask.";
     };
     archives.enable = mkOption {
       type = types.bool;
-      default = true;
+      default = false;
       description = "Install archive utilities managed by Homebrew.";
     };
 

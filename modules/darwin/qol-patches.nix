@@ -24,25 +24,13 @@ in
     };
   };
 
-  config = mkIf cfg.enable {
-    system.activationScripts =
-      mkIf cfg.fastDockAnimation {
-        "fastDockAnimation" = {
-          enable = true;
-          text = ''
-            defaults write com.apple.dock autohide-delay -float 0; killall Dock
-            echo "Fast Dock Animation enabled"
-          '';
-        };
-      }
-      // optionalAttrs cfg.disableAccentKeyboard {
-        "disableAccentKeyboard" = {
-          enable = true;
-          text = ''
-            defaults write -g ApplePressAndHoldEnabled -bool false
-            echo "Accent keyboard disabled"
-          '';
-        };
-      };
-  };
+  config = mkIf cfg.enable (mkMerge [
+    (mkIf cfg.fastDockAnimation {
+      system.defaults.dock.autohide-delay = 0.0;
+    })
+
+    (mkIf cfg.disableAccentKeyboard {
+      system.defaults.NSGlobalDomain.ApplePressAndHoldEnabled = false;
+    })
+  ]);
 }

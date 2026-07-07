@@ -100,7 +100,8 @@ in
           code-cursor
           cursor-cli
         ]
-        ++ optionals cfg.ghostty.enable [ ghostty ]
+        ++ optionals (isDarwin && cfg.ghostty.enable) [ ghostty-bin ]
+        ++ optionals (!isDarwin && cfg.ghostty.enable) [ ghostty ]
         ++ optional ((cfg.ai.enable && cfg.ai.claude) && !isDarwin) claude-code
         ++ optional ((cfg.ai.enable && cfg.ai.opencode) && !isDarwin) opencode
         ++ optional ((cfg.ai.enable && cfg.ai.codex) && !isDarwin) codex

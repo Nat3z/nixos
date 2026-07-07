@@ -16,6 +16,11 @@
     inputs.zen-browser.homeModules.beta
   ];
 
+  programs.ssh = {
+    enable = true;
+    addKeysToAgent = "yes";
+  };
+
   programs.zen-browser = {
     enable = true;
   };
