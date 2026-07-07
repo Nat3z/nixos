@@ -100,6 +100,7 @@ in
       # figma.enable = false;
       # finetune.enable = false;
       # kicad.enable = true;
+      extraCasks = [ "tailscale-app" ];
     };
   };
   # Window-management setup.
