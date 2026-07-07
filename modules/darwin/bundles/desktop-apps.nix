@@ -27,6 +27,11 @@ let
       default = false;
       description = "Install media/audio/video tools.";
     };
+    music.enable = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Install music tools.";
+    };
     design.enable = mkOption {
       type = types.bool;
       default = false;
@@ -43,11 +48,6 @@ let
       description = "Install GUI fonts through Homebrew casks.";
     };
 
-    aerospace.enable = mkOption {
-      type = types.bool;
-      default = false;
-      description = "Install Aerospace.";
-    };
     sikarugir.enable = mkOption {
       type = types.bool;
       default = false;
@@ -128,14 +128,14 @@ in
         ++ extraBrews;
 
       casks =
-        optional (use "windowManagers" && use "aerospace") "aerospace"
-        ++ optional (use "media") "audacity"
+        optional (use "media") "audacity"
         ++ optional (use "design" && use "figma") "figma"
         ++ optional (use "design" && use "finetune") "finetune"
         ++ optional (use "fonts") "font-jetbrains-mono-nerd-font"
         ++ optional (use "cad" && use "kicad") "kicad"
         ++ optional (use "sikarugir") "sikarugir"
         ++ optional (use "cursorcerer") "cursorcerer"
+        ++ optional (use "music") "musescore"
         ++ extraCasks;
 
     };

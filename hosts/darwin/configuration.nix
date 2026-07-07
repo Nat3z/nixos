@@ -91,8 +91,9 @@ in
     desktop = {
       enable = true;
       media.enable = true;
-      design.enable = false;
       fonts.enable = true;
+      music.enable = true;
+      # design.enable = false;
       # cad.enable = true;
       # windowManagers.enable = true;
       # sikarugir.enable = true;
