@@ -24,11 +24,6 @@ let
       default = false;
       description = "Install shell-related Homebrew tools.";
     };
-    hardware.enable = mkOption {
-      type = types.bool;
-      default = false;
-      description = "Install embedded/hardware tooling.";
-    };
     network.enable = mkOption {
       type = types.bool;
       default = false;
@@ -89,12 +84,7 @@ in
   config = mkIf enabled {
     homebrew = {
       taps =
-        optionals (use "hardware") [
-          "osx-cross/arm"
-          "osx-cross/avr"
-          "qmk/qmk"
-        ]
-        ++ optionals (use "cli") [
+        optionals (use "cli") [
           "steipete/tap"
           "tw93/tap"
         ]
@@ -104,10 +94,6 @@ in
       brews =
         optionals (use "shell") [
           "bash"
-        ]
-        ++ optionals (use "hardware") [
-          "arduino-cli"
-          "esptool"
         ]
         ++ optionals (use "network") [
           "cloudflared"
