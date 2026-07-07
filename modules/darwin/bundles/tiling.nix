@@ -192,17 +192,6 @@ in
 
           focus-follows-mouse.enabled = true
 
-          [key-mapping]
-          preset = 'qwerty'
-
-          [gaps]
-          inner.horizontal = 0
-          inner.vertical = 0
-          outer.left = 0
-          outer.bottom = 0
-          outer.top = 0
-          outer.right = 0
-
           on-window-detected = [
             {
               if = 'test %{app-bundle-id} = com.apple.FaceTime',
@@ -220,6 +209,17 @@ in
               run = 'layout floating',
             },
           ]
+
+          [key-mapping]
+          preset = 'qwerty'
+
+          [gaps]
+          inner.horizontal = 0
+          inner.vertical = 0
+          outer.left = 0
+          outer.bottom = 0
+          outer.top = 0
+          outer.right = 0
         '';
       };
 
