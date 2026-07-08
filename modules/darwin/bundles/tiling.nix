@@ -442,7 +442,7 @@ in
 
           if [ -s "$FRAME_FILE" ]; then
               DESIRED_FRAME=$(cat "$FRAME_FILE")
-          elif echo "$CURRENT_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+,'; then
+          elif [ "$WINDOW_WORKSPACE" = "$CURRENT_WORKSPACE" ] && echo "$CURRENT_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+,'; then
               DESIRED_FRAME=$(echo "$CURRENT_FRAME" | cut -d, -f1-4)
           else
               DESIRED_FRAME="100,100,420,320"
@@ -451,7 +451,7 @@ in
           aerospace layout --window-id "$WINDOW_ID" floating
           if [ "$WINDOW_WORKSPACE" != "$CURRENT_WORKSPACE" ]; then
               aerospace move-node-to-workspace --window-id "$WINDOW_ID" "$CURRENT_WORKSPACE"
-              sleep 0.15
+              sleep 0.30
           fi
 
           restore_frame() {
@@ -476,16 +476,6 @@ in
           if echo "$DESIRED_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+$'; then
               IFS=, read -r X Y W H <<< "$DESIRED_FRAME"
               restore_frame "$X" "$Y" "$W" "$H"
-              (
-                  sleep 0.25
-                  restore_frame "$X" "$Y" "$W" "$H"
-                  sleep 0.50
-                  restore_frame "$X" "$Y" "$W" "$H"
-                  sleep 0.75
-                  restore_frame "$X" "$Y" "$W" "$H"
-                  sleep 1.00
-                  restore_frame "$X" "$Y" "$W" "$H"
-              ) >/dev/null 2>&1 &
           fi
         '';
       };
