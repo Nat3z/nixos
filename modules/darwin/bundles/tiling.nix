@@ -398,13 +398,11 @@ in
           eval $(/opt/homebrew/bin/brew shellenv)
 
           CURRENT_WORKSPACE="''${1:-$(aerospace list-workspaces --focused)}"
-          WINDOW_ID=$(aerospace list-windows --all --format '%{window-id}|%{app-name}|%{window-title}' | awk -F'|' '
-            tolower($2) == "vesktop" {
-              count++
-              if (count == 2) second = $1
-              if (candidate == "" && $3 !~ /Discord \|/) candidate = $1
-            }
-            END { if (candidate != "") print candidate; else if (second != "") print second }
+          WINDOW_ID=$(aerospace list-windows --all --json | jq -r '
+            map(select((."app-name" | ascii_downcase) == "vesktop")) as $wins |
+            ($wins | map(select(((."window-title" // "") | test("Discord \\|")) | not)) | .[0]."window-id") //
+            ($wins | .[1]."window-id") //
+            empty
           ')
 
           if [ -z "$WINDOW_ID" ] || [ -z "$CURRENT_WORKSPACE" ]; then
