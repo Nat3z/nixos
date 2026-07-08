@@ -53,11 +53,11 @@ let
   aerospaceSkhdConfig = ''
     # -------- AeroSpace shortcuts --------
 
-    fn - 1 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 1 && ~/.config/skhd/aerospace_follow_facetime.sh 1 && ~/.config/skhd/aerospace_follow_discord_popout.sh 1
-    fn - 2 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 2 && ~/.config/skhd/aerospace_follow_facetime.sh 2 && ~/.config/skhd/aerospace_follow_discord_popout.sh 2
-    fn - 3 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 3 && ~/.config/skhd/aerospace_follow_facetime.sh 3 && ~/.config/skhd/aerospace_follow_discord_popout.sh 3
-    fn - 4 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 4 && ~/.config/skhd/aerospace_follow_facetime.sh 4 && ~/.config/skhd/aerospace_follow_discord_popout.sh 4
-    fn - 5 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 5 && ~/.config/skhd/aerospace_follow_facetime.sh 5 && ~/.config/skhd/aerospace_follow_discord_popout.sh 5
+    fn - 1 : eval $(/opt/homebrew/bin/brew shellenv) && ~/.config/skhd/aerospace_follow_discord_popout.sh && aerospace workspace 1 && ~/.config/skhd/aerospace_follow_facetime.sh 1 && ~/.config/skhd/aerospace_follow_discord_popout.sh 1
+    fn - 2 : eval $(/opt/homebrew/bin/brew shellenv) && ~/.config/skhd/aerospace_follow_discord_popout.sh && aerospace workspace 2 && ~/.config/skhd/aerospace_follow_facetime.sh 2 && ~/.config/skhd/aerospace_follow_discord_popout.sh 2
+    fn - 3 : eval $(/opt/homebrew/bin/brew shellenv) && ~/.config/skhd/aerospace_follow_discord_popout.sh && aerospace workspace 3 && ~/.config/skhd/aerospace_follow_facetime.sh 3 && ~/.config/skhd/aerospace_follow_discord_popout.sh 3
+    fn - 4 : eval $(/opt/homebrew/bin/brew shellenv) && ~/.config/skhd/aerospace_follow_discord_popout.sh && aerospace workspace 4 && ~/.config/skhd/aerospace_follow_facetime.sh 4 && ~/.config/skhd/aerospace_follow_discord_popout.sh 4
+    fn - 5 : eval $(/opt/homebrew/bin/brew shellenv) && ~/.config/skhd/aerospace_follow_discord_popout.sh && aerospace workspace 5 && ~/.config/skhd/aerospace_follow_facetime.sh 5 && ~/.config/skhd/aerospace_follow_discord_popout.sh 5
 
     fn + shift - 1 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 1
     fn + shift - 2 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 2
@@ -393,7 +393,7 @@ in
         executable = true;
         text = ''
           #!/bin/bash
-          eval $(/opt/homebrew/bin/brew shellenv)
+          eval "$(/opt/homebrew/bin/brew shellenv)"
 
           CURRENT_WORKSPACE="''${1:-$(aerospace list-workspaces --focused)}"
           WINDOW_ID=$(aerospace list-windows --all --json | jq -r '
