@@ -432,17 +432,17 @@ in
 
           if echo "$CURRENT_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+,[0-9]+,[0-9]+$'; then
               IFS=, read -r CX CY CW CH CSW CSH <<< "$CURRENT_FRAME"
-              # Only learn the desired position when the popout is already on the
-              # focused workspace. During cross-workspace moves, AeroSpace/macOS can
-              # report temporary hidden/offscreen-ish positions; don't persist those.
-              if [ "$WINDOW_WORKSPACE" = "$CURRENT_WORKSPACE" ] && [ "$CX" -lt $((CSW - 80)) ] && [ "$CY" -lt $((CSH - 80)) ]; then
+              # Learn the desired position whenever the AX frame looks real.
+              # When AeroSpace hides a floating window on a non-focused workspace,
+              # it reports a bottom-right/offscreen-ish position; don't persist that.
+              if [ "$CX" -lt $((CSW - 80)) ] && [ "$CY" -lt $((CSH - 80)) ]; then
                   printf '%s,%s,%s,%s\n' "$CX" "$CY" "$CW" "$CH" > "$FRAME_FILE"
               fi
           fi
 
           if [ -s "$FRAME_FILE" ]; then
               DESIRED_FRAME=$(cat "$FRAME_FILE")
-          elif [ "$WINDOW_WORKSPACE" = "$CURRENT_WORKSPACE" ] && echo "$CURRENT_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+,'; then
+          elif echo "$CURRENT_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+,[0-9]+,[0-9]+$' && [ "''${CX:-99999}" -lt $(( ''${CSW:-0} - 80 )) ] && [ "''${CY:-99999}" -lt $(( ''${CSH:-0} - 80 )) ]; then
               DESIRED_FRAME=$(echo "$CURRENT_FRAME" | cut -d, -f1-4)
           else
               DESIRED_FRAME="100,100,420,320"
