@@ -1,5 +1,27 @@
-{ pkgs, config, ... }:
+{ pkgs, config, lib, ... }:
 {
+    home.activation.discordNoSelfUpdate = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        rm -rf "$HOME/Library/Application Support/discord/app-"*
+        /usr/bin/python3 - <<'PY'
+import json, os
+p = os.path.expanduser("~/Library/Application Support/discord/settings.json")
+os.makedirs(os.path.dirname(p), exist_ok=True)
+try:
+    with open(p) as f:
+        settings = json.load(f)
+except Exception:
+    settings = {}
+settings.update({
+    "SKIP_HOST_UPDATE": True,
+    "SKIP_MODULE_UPDATE": True,
+    "USE_NEW_UPDATER": False,
+})
+settings.pop("openasar", None)
+with open(p, "w") as f:
+    json.dump(settings, f, indent=2)
+PY
+    '';
+
     home.packages = with pkgs; [
         ((discord.override {
             withOpenASAR = false;
