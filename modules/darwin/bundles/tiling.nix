@@ -53,11 +53,11 @@ let
   aerospaceSkhdConfig = ''
     # -------- AeroSpace shortcuts --------
 
-    fn - 1 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 1 && ~/.config/skhd/aerospace_follow_facetime.sh 1
-    fn - 2 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 2 && ~/.config/skhd/aerospace_follow_facetime.sh 2
-    fn - 3 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 3 && ~/.config/skhd/aerospace_follow_facetime.sh 3
-    fn - 4 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 4 && ~/.config/skhd/aerospace_follow_facetime.sh 4
-    fn - 5 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 5 && ~/.config/skhd/aerospace_follow_facetime.sh 5
+    fn - 1 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 1 && ~/.config/skhd/aerospace_follow_facetime.sh 1 && ~/.config/skhd/aerospace_follow_second_vesktop.sh 1
+    fn - 2 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 2 && ~/.config/skhd/aerospace_follow_facetime.sh 2 && ~/.config/skhd/aerospace_follow_second_vesktop.sh 2
+    fn - 3 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 3 && ~/.config/skhd/aerospace_follow_facetime.sh 3 && ~/.config/skhd/aerospace_follow_second_vesktop.sh 3
+    fn - 4 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 4 && ~/.config/skhd/aerospace_follow_facetime.sh 4 && ~/.config/skhd/aerospace_follow_second_vesktop.sh 4
+    fn - 5 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 5 && ~/.config/skhd/aerospace_follow_facetime.sh 5 && ~/.config/skhd/aerospace_follow_second_vesktop.sh 5
 
     fn + shift - 1 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 1
     fn + shift - 2 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 2
@@ -163,6 +163,9 @@ in
         yabai -m rule --add app="^FaceTime$" manage=off
         yabai -m rule --add app="^Raycast$" manage=off
         yabai -m rule --add app="^Kap$" manage=off
+        yabai -m signal --add event=window_created action="/bin/bash -lc '~/.config/skhd/follow_second_vesktop.sh >/dev/null 2>&1 &'"
+        yabai -m signal --add event=space_changed action="/bin/bash -lc '~/.config/skhd/follow_second_vesktop.sh >/dev/null 2>&1 &'"
+        yabai -m signal --add event=application_launched action="/bin/bash -lc '~/.config/skhd/follow_second_vesktop.sh >/dev/null 2>&1 &'"
         yabai -m signal --add event=dock_did_restart action="sudo yabai --load-sa"
       '';
     };
@@ -189,7 +192,7 @@ in
         exec-on-workspace-change = [
           "/bin/bash"
           "-c"
-          ''eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_facetime.sh "$AEROSPACE_FOCUSED_WORKSPACE"''
+          ''eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_facetime.sh "$AEROSPACE_FOCUSED_WORKSPACE"; ~/.config/skhd/aerospace_follow_second_vesktop.sh "$AEROSPACE_FOCUSED_WORKSPACE"''
         ];
 
         automatically-unhide-macos-hidden-apps = false;
@@ -211,6 +214,10 @@ in
           {
             "if".app-id = "com.wulkano.kap";
             run = "layout floating";
+          }
+          {
+            "if".app-name-regex-substring = "^[Vv]esktop$";
+            run = "exec-and-forget sleep 0.2; eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_second_vesktop.sh";
           }
         ];
 
@@ -344,6 +351,54 @@ in
 
           # Focus the window
           aerospace focus --window-id "$WINDOW_ID"
+        '';
+      };
+
+      home.file.".config/skhd/follow_second_vesktop.sh" = {
+        force = true;
+        executable = true;
+        text = ''
+          #!/bin/bash
+          eval $(/opt/homebrew/bin/brew shellenv)
+
+          WINDOW_ID=$(yabai -m query --windows | jq -r 'sort_by(.id) | map(select((.app | ascii_downcase) == "vesktop")) | .[1].id // empty')
+
+          if [ -z "$WINDOW_ID" ]; then
+              exit 0
+          fi
+
+          WINDOW_JSON=$(yabai -m query --windows --window "$WINDOW_ID")
+
+          if [ "$(echo "$WINDOW_JSON" | jq -r '.["is-floating"]')" != "true" ]; then
+              yabai -m window "$WINDOW_ID" --toggle float
+          fi
+
+          if [ "$(echo "$WINDOW_JSON" | jq -r '.["is-sticky"]')" != "true" ]; then
+              yabai -m window "$WINDOW_ID" --toggle sticky
+          fi
+
+          if [ "$(echo "$WINDOW_JSON" | jq -r '.["is-topmost"]')" != "true" ]; then
+              yabai -m window "$WINDOW_ID" --toggle topmost
+          fi
+        '';
+      };
+
+      home.file.".config/skhd/aerospace_follow_second_vesktop.sh" = {
+        force = true;
+        executable = true;
+        text = ''
+          #!/bin/bash
+          eval $(/opt/homebrew/bin/brew shellenv)
+
+          CURRENT_WORKSPACE="''${1:-$(aerospace list-workspaces --focused)}"
+          WINDOW_ID=$(aerospace list-windows --all --format '%{window-id}|%{app-name}' | awk -F'|' 'tolower($2) == "vesktop" { count++; if (count == 2) { print $1; exit } }')
+
+          if [ -z "$WINDOW_ID" ] || [ -z "$CURRENT_WORKSPACE" ]; then
+              exit 0
+          fi
+
+          aerospace layout --window-id "$WINDOW_ID" floating
+          aerospace move-node-to-workspace --window-id "$WINDOW_ID" "$CURRENT_WORKSPACE"
         '';
       };
 
