@@ -150,6 +150,8 @@ in
     };
 
 
+    homebrew.casks = optional (use "aerospace") "hammerspoon";
+
     services.yabai = mkIf (use "yabai") {
       enable = true;
       enableScriptingAddition = true;
@@ -243,6 +245,78 @@ in
     };
 
     home-manager.users.${username} = {
+      home.file.".hammerspoon/init.lua" = mkIf (use "aerospace") {
+        force = true;
+        text = ''
+          hs.autoLaunch(true)
+
+          local pinnedVesktopPopoutId = nil
+
+          local function isVesktop(win)
+            local app = win and win:application()
+            return app and string.lower(app:name() or "") == "vesktop"
+          end
+
+          local function isMainDiscordWindow(win)
+            return string.find(win:title() or "", "Discord |", 1, true) ~= nil
+          end
+
+          local function pinVesktopPopout()
+            local popout = nil
+
+            for _, win in ipairs(hs.window.allWindows()) do
+              if isVesktop(win) then
+                if isMainDiscordWindow(win) then
+                  -- If the main Discord window was pinned by an earlier heuristic, undo it.
+                  win:setLevel(0)
+                elseif popout == nil then
+                  popout = win
+                end
+              end
+            end
+
+            if popout then
+              pinnedVesktopPopoutId = popout:id()
+              popout:setLevel(3) -- NSFloatingWindowLevel: pin above normal app windows.
+            elseif pinnedVesktopPopoutId then
+              pinnedVesktopPopoutId = nil
+            end
+          end
+
+          hs.timer.doEvery(1, pinVesktopPopout)
+          hs.timer.doAfter(1, pinVesktopPopout)
+          hs.window.filter.default:subscribe({
+            hs.window.filter.windowCreated,
+            hs.window.filter.windowTitleChanged,
+            hs.window.filter.windowFocused
+          }, function()
+            hs.timer.doAfter(0.1, pinVesktopPopout)
+          end)
+        '';
+      };
+
+      home.file."Library/LaunchAgents/com.user.hammerspoon.plist" = mkIf (use "aerospace") {
+        force = true;
+        text = ''
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>Label</key>
+            <string>com.user.hammerspoon</string>
+            <key>ProgramArguments</key>
+            <array>
+              <string>/usr/bin/open</string>
+              <string>-a</string>
+              <string>Hammerspoon</string>
+            </array>
+            <key>RunAtLoad</key>
+            <true/>
+          </dict>
+          </plist>
+        '';
+      };
+
       home.file."Scripts/confirm-quit-front-app" = {
         force = true;
         executable = true;
