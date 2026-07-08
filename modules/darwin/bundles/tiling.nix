@@ -187,7 +187,11 @@ in
         default-root-container-layout = "tiles";
         default-root-container-orientation = "auto";
 
-        on-focus-changed = [ ];
+        on-focus-changed = [
+          "/bin/bash"
+          "-c"
+          ''eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_second_vesktop.sh''
+        ];
         on-focused-monitor-changed = [ ];
         exec-on-workspace-change = [
           "/bin/bash"
@@ -361,7 +365,12 @@ in
           #!/bin/bash
           eval $(/opt/homebrew/bin/brew shellenv)
 
-          WINDOW_ID=$(yabai -m query --windows | jq -r 'sort_by(.id) | map(select((.app | ascii_downcase) == "vesktop")) | .[1].id // empty')
+          WINDOW_ID=$(yabai -m query --windows | jq -r '
+            sort_by(.id) | map(select((.app | ascii_downcase) == "vesktop")) as $wins |
+            ($wins | map(select((((.title // "") | test("Discord \\|")) | not))) | .[0].id) //
+            ($wins | .[1].id) //
+            empty
+          ')
 
           if [ -z "$WINDOW_ID" ]; then
               exit 0
@@ -391,7 +400,14 @@ in
           eval $(/opt/homebrew/bin/brew shellenv)
 
           CURRENT_WORKSPACE="''${1:-$(aerospace list-workspaces --focused)}"
-          WINDOW_ID=$(aerospace list-windows --all --format '%{window-id}|%{app-name}' | awk -F'|' 'tolower($2) == "vesktop" { count++; if (count == 2) { print $1; exit } }')
+          WINDOW_ID=$(aerospace list-windows --all --format '%{window-id}|%{app-name}|%{window-title}' | awk -F'|' '
+            tolower($2) == "vesktop" {
+              count++
+              if (count == 2) second = $1
+              if (candidate == "" && $3 !~ /Discord \|/) candidate = $1
+            }
+            END { if (candidate != "") print candidate; else if (second != "") print second }
+          ')
 
           if [ -z "$WINDOW_ID" ] || [ -z "$CURRENT_WORKSPACE" ]; then
               exit 0
