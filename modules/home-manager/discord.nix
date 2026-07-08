@@ -16,7 +16,7 @@
                 # the immutable Nix-managed app/modules. Remove those stale updater
                 # payloads before launching so the Nix store app is always used.
                 substituteInPlace $out/bin/Discord \
-                    --replace-fail 'disable-breaking-updates.py' 'disable-breaking-updates.py
+                    --replace-fail '/bin/disable-breaking-updates.py' '/bin/disable-breaking-updates.py
 rm -rf "$HOME/Library/Application Support/discord/app-"*'
             '';
         }))
