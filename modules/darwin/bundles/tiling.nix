@@ -432,9 +432,10 @@ in
 
           if echo "$CURRENT_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+,[0-9]+,[0-9]+$'; then
               IFS=, read -r CX CY CW CH CSW CSH <<< "$CURRENT_FRAME"
-              # Do not learn AeroSpace's bottom-right "hidden on another workspace"
-              # placement as the desired position.
-              if [ "$CX" -lt $((CSW - 80)) ] && [ "$CY" -lt $((CSH - 80)) ]; then
+              # Only learn the desired position when the popout is already on the
+              # focused workspace. During cross-workspace moves, AeroSpace/macOS can
+              # report temporary hidden/offscreen-ish positions; don't persist those.
+              if [ "$WINDOW_WORKSPACE" = "$CURRENT_WORKSPACE" ] && [ "$CX" -lt $((CSW - 80)) ] && [ "$CY" -lt $((CSH - 80)) ]; then
                   printf '%s,%s,%s,%s\n' "$CX" "$CY" "$CW" "$CH" > "$FRAME_FILE"
               fi
           fi
@@ -475,10 +476,16 @@ in
           if echo "$DESIRED_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+$'; then
               IFS=, read -r X Y W H <<< "$DESIRED_FRAME"
               restore_frame "$X" "$Y" "$W" "$H"
-              sleep 0.25
-              restore_frame "$X" "$Y" "$W" "$H"
-              sleep 0.50
-              restore_frame "$X" "$Y" "$W" "$H"
+              (
+                  sleep 0.25
+                  restore_frame "$X" "$Y" "$W" "$H"
+                  sleep 0.50
+                  restore_frame "$X" "$Y" "$W" "$H"
+                  sleep 0.75
+                  restore_frame "$X" "$Y" "$W" "$H"
+                  sleep 1.00
+                  restore_frame "$X" "$Y" "$W" "$H"
+              ) >/dev/null 2>&1 &
           fi
         '';
       };
