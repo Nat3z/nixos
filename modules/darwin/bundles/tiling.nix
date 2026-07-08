@@ -188,9 +188,7 @@ in
         default-root-container-orientation = "auto";
 
         on-focus-changed = [
-          "/bin/bash"
-          "-c"
-          ''eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_second_vesktop.sh''
+          "exec-and-forget eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_second_vesktop.sh"
         ];
         on-focused-monitor-changed = [ ];
         exec-on-workspace-change = [
