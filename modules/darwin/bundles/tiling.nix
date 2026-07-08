@@ -407,23 +407,6 @@ in
               exit 0
           fi
 
-          FRAME=$(/usr/bin/osascript 2>/dev/null <<'APPLESCRIPT' || true
-          tell application "System Events"
-            if not (exists process "Discord") then return ""
-            tell process "Discord"
-              repeat with w in windows
-                set windowTitle to name of w
-                if windowTitle does not end with " - Discord" then
-                  set windowPosition to position of w
-                  set windowSize to size of w
-                  return (item 1 of windowPosition as text) & "," & (item 2 of windowPosition as text) & "," & (item 1 of windowSize as text) & "," & (item 2 of windowSize as text)
-                end if
-              end repeat
-            end tell
-          end tell
-          APPLESCRIPT
-          )
-
           WINDOW_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' | awk -F'|' -v id="$WINDOW_ID" '$1 == id { print $2; exit }')
 
           aerospace layout --window-id "$WINDOW_ID" floating
@@ -432,24 +415,41 @@ in
               sleep 0.15
           fi
 
-          if echo "$FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+$'; then
-              IFS=, read -r X Y W H <<< "$FRAME"
-              /usr/bin/osascript >/dev/null 2>&1 <<APPLESCRIPT || true
+          center_popout() {
+              /usr/bin/osascript >/dev/null 2>&1 <<'APPLESCRIPT' || true
+          tell application "Finder" to set screenBounds to bounds of window of desktop
+          set screenW to item 3 of screenBounds
+          set screenH to item 4 of screenBounds
+
+          set winW to 420
+          set winH to 320
+          set x to (screenW - winW) / 2
+          set y to (screenH - winH) / 2
+
           tell application "System Events"
             if not (exists process "Discord") then return
             tell process "Discord"
               repeat with w in windows
-                set windowTitle to name of w
-                if windowTitle does not end with " - Discord" then
-                  set position of w to {$X, $Y}
-                  set size of w to {$W, $H}
+                if name of w does not end with " - Discord" then
+                  set size of w to {winW, winH}
+                  set position of w to {x, y}
+                  perform action "AXRaise" of w
                   exit repeat
                 end if
               end repeat
             end tell
           end tell
           APPLESCRIPT
-          fi
+          }
+
+          # AeroSpace can shove moved floating windows to bottom-right as if they
+          # are hidden on another workspace. Centering after the move fixes that;
+          # do it a few times to outlast the async placement.
+          center_popout
+          sleep 0.25
+          center_popout
+          sleep 0.50
+          center_popout
         '';
       };
 
