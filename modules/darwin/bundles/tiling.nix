@@ -365,7 +365,7 @@ in
 
           WINDOW_ID=$(yabai -m query --windows | jq -r '
             sort_by(.id) | map(select((.app | ascii_downcase) == "discord")) as $wins |
-            ($wins | map(select((((.title // "") | test("Discord \\|")) | not))) | .[0].id) //
+            ($wins | map(select((((.title // "") | test(" - Discord$")) | not))) | .[0].id) //
             ($wins | .[1].id) //
             empty
           ')
@@ -400,7 +400,7 @@ in
           CURRENT_WORKSPACE="''${1:-$(aerospace list-workspaces --focused)}"
           WINDOW_ID=$(aerospace list-windows --all --json | jq -r '
             map(select((."app-name" | ascii_downcase) == "discord")) as $wins |
-            ($wins | map(select(((."window-title" // "") | test("Discord \\|")) | not)) | .[0]."window-id") //
+            ($wins | map(select(((."window-title" // "") | test(" - Discord$")) | not)) | .[0]."window-id") //
             ($wins | .[1]."window-id") //
             empty
           ')
