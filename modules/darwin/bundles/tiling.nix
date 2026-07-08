@@ -53,11 +53,11 @@ let
   aerospaceSkhdConfig = ''
     # -------- AeroSpace shortcuts --------
 
-    fn - 1 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 1 && ~/.config/skhd/aerospace_follow_facetime.sh 1 && ~/.config/skhd/aerospace_follow_second_vesktop.sh 1
-    fn - 2 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 2 && ~/.config/skhd/aerospace_follow_facetime.sh 2 && ~/.config/skhd/aerospace_follow_second_vesktop.sh 2
-    fn - 3 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 3 && ~/.config/skhd/aerospace_follow_facetime.sh 3 && ~/.config/skhd/aerospace_follow_second_vesktop.sh 3
-    fn - 4 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 4 && ~/.config/skhd/aerospace_follow_facetime.sh 4 && ~/.config/skhd/aerospace_follow_second_vesktop.sh 4
-    fn - 5 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 5 && ~/.config/skhd/aerospace_follow_facetime.sh 5 && ~/.config/skhd/aerospace_follow_second_vesktop.sh 5
+    fn - 1 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 1 && ~/.config/skhd/aerospace_follow_facetime.sh 1 && ~/.config/skhd/aerospace_follow_discord_popout.sh 1
+    fn - 2 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 2 && ~/.config/skhd/aerospace_follow_facetime.sh 2 && ~/.config/skhd/aerospace_follow_discord_popout.sh 2
+    fn - 3 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 3 && ~/.config/skhd/aerospace_follow_facetime.sh 3 && ~/.config/skhd/aerospace_follow_discord_popout.sh 3
+    fn - 4 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 4 && ~/.config/skhd/aerospace_follow_facetime.sh 4 && ~/.config/skhd/aerospace_follow_discord_popout.sh 4
+    fn - 5 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 5 && ~/.config/skhd/aerospace_follow_facetime.sh 5 && ~/.config/skhd/aerospace_follow_discord_popout.sh 5
 
     fn + shift - 1 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 1
     fn + shift - 2 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 2
@@ -150,8 +150,6 @@ in
     };
 
 
-    homebrew.casks = optional (use "aerospace") "macforge";
-
     services.yabai = mkIf (use "yabai") {
       enable = true;
       enableScriptingAddition = true;
@@ -165,9 +163,9 @@ in
         yabai -m rule --add app="^FaceTime$" manage=off
         yabai -m rule --add app="^Raycast$" manage=off
         yabai -m rule --add app="^Kap$" manage=off
-        yabai -m signal --add event=window_created action="/bin/bash -lc '~/.config/skhd/follow_second_vesktop.sh >/dev/null 2>&1 &'"
-        yabai -m signal --add event=space_changed action="/bin/bash -lc '~/.config/skhd/follow_second_vesktop.sh >/dev/null 2>&1 &'"
-        yabai -m signal --add event=application_launched action="/bin/bash -lc '~/.config/skhd/follow_second_vesktop.sh >/dev/null 2>&1 &'"
+        yabai -m signal --add event=window_created action="/bin/bash -lc '~/.config/skhd/follow_discord_popout.sh >/dev/null 2>&1 &'"
+        yabai -m signal --add event=space_changed action="/bin/bash -lc '~/.config/skhd/follow_discord_popout.sh >/dev/null 2>&1 &'"
+        yabai -m signal --add event=application_launched action="/bin/bash -lc '~/.config/skhd/follow_discord_popout.sh >/dev/null 2>&1 &'"
         yabai -m signal --add event=dock_did_restart action="sudo yabai --load-sa"
       '';
     };
@@ -190,13 +188,13 @@ in
         default-root-container-orientation = "auto";
 
         on-focus-changed = [
-          "exec-and-forget eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_second_vesktop.sh"
+          "exec-and-forget eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_discord_popout.sh"
         ];
         on-focused-monitor-changed = [ ];
         exec-on-workspace-change = [
           "/bin/bash"
           "-c"
-          ''eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_facetime.sh "$AEROSPACE_FOCUSED_WORKSPACE"; ~/.config/skhd/aerospace_follow_second_vesktop.sh "$AEROSPACE_FOCUSED_WORKSPACE"''
+          ''eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_facetime.sh "$AEROSPACE_FOCUSED_WORKSPACE"; ~/.config/skhd/aerospace_follow_discord_popout.sh "$AEROSPACE_FOCUSED_WORKSPACE"''
         ];
 
         automatically-unhide-macos-hidden-apps = false;
@@ -220,8 +218,8 @@ in
             run = "layout floating";
           }
           {
-            "if".app-name-regex-substring = "^[Vv]esktop$";
-            run = "exec-and-forget sleep 0.2; eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_second_vesktop.sh";
+            "if".app-name-regex-substring = "^[Dd]iscord$";
+            run = "exec-and-forget sleep 0.2; eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_discord_popout.sh";
           }
         ];
 
@@ -245,30 +243,6 @@ in
     };
 
     home-manager.users.${username} = {
-      home.file."Scripts/install-afloatx" = mkIf (use "aerospace") {
-        force = true;
-        executable = true;
-        text = ''
-          #!/bin/bash
-          set -euo pipefail
-
-          /usr/bin/open -a "MacForge" || true
-          sleep 1
-          /usr/bin/open "macforge://github.com/w0lfschild/myRepo/raw/master/macplugins/com.github.jslegendre.AfloatX"
-
-          cat <<'EOF'
-          AfloatX install opened in MacForge.
-
-          After installing/enabling AfloatX:
-            1. Open the Vesktop call popout.
-            2. Use the app/Dock menu added by AfloatX.
-            3. Enable "Keep window on top" and, if desired, "Sticky mode".
-
-          AfloatX is a MacForge plugin, so this part is intentionally interactive.
-          EOF
-        '';
-      };
-
       home.file."Scripts/confirm-quit-front-app" = {
         force = true;
         executable = true;
@@ -382,7 +356,7 @@ in
         '';
       };
 
-      home.file.".config/skhd/follow_second_vesktop.sh" = {
+      home.file.".config/skhd/follow_discord_popout.sh" = {
         force = true;
         executable = true;
         text = ''
@@ -390,7 +364,7 @@ in
           eval $(/opt/homebrew/bin/brew shellenv)
 
           WINDOW_ID=$(yabai -m query --windows | jq -r '
-            sort_by(.id) | map(select((.app | ascii_downcase) == "vesktop")) as $wins |
+            sort_by(.id) | map(select((.app | ascii_downcase) == "discord")) as $wins |
             ($wins | map(select((((.title // "") | test("Discord \\|")) | not))) | .[0].id) //
             ($wins | .[1].id) //
             empty
@@ -416,7 +390,7 @@ in
         '';
       };
 
-      home.file.".config/skhd/aerospace_follow_second_vesktop.sh" = {
+      home.file.".config/skhd/aerospace_follow_discord_popout.sh" = {
         force = true;
         executable = true;
         text = ''
@@ -425,7 +399,7 @@ in
 
           CURRENT_WORKSPACE="''${1:-$(aerospace list-workspaces --focused)}"
           WINDOW_ID=$(aerospace list-windows --all --json | jq -r '
-            map(select((."app-name" | ascii_downcase) == "vesktop")) as $wins |
+            map(select((."app-name" | ascii_downcase) == "discord")) as $wins |
             ($wins | map(select(((."window-title" // "") | test("Discord \\|")) | not)) | .[0]."window-id") //
             ($wins | .[1]."window-id") //
             empty

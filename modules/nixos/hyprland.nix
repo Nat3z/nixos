@@ -62,8 +62,8 @@ in
             done
           }
 
-          # first is vesktop. 
-          move_windows_to_workspace 'vesktop' 1
+          # first is Discord.
+          move_windows_to_workspace 'discord' 1
           # second is always primary items.
           move_windows_to_workspace 'org.vinegarhq.Sober' 3
           move_windows_to_workspace 'Code' 3
