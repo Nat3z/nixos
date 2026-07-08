@@ -427,7 +427,7 @@ in
                   fi
               fi
 
-              sleep 0.5
+              sleep 0.15
           done
         '';
       };
