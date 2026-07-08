@@ -150,7 +150,7 @@ in
     };
 
 
-    homebrew.casks = optional (use "aerospace") "hammerspoon";
+    homebrew.casks = optional (use "aerospace") "macforge";
 
     services.yabai = mkIf (use "yabai") {
       enable = true;
@@ -245,75 +245,27 @@ in
     };
 
     home-manager.users.${username} = {
-      home.file.".hammerspoon/init.lua" = mkIf (use "aerospace") {
+      home.file."Scripts/install-afloatx" = mkIf (use "aerospace") {
         force = true;
+        executable = true;
         text = ''
-          hs.autoLaunch(true)
+          #!/bin/bash
+          set -euo pipefail
 
-          local pinnedVesktopPopoutId = nil
+          /usr/bin/open -a "MacForge" || true
+          sleep 1
+          /usr/bin/open "macforge://github.com/w0lfschild/myRepo/raw/master/macplugins/com.github.jslegendre.AfloatX"
 
-          local function isVesktop(win)
-            local app = win and win:application()
-            return app and string.lower(app:name() or "") == "vesktop"
-          end
+          cat <<'EOF'
+          AfloatX install opened in MacForge.
 
-          local function isMainDiscordWindow(win)
-            return string.find(win:title() or "", "Discord |", 1, true) ~= nil
-          end
+          After installing/enabling AfloatX:
+            1. Open the Vesktop call popout.
+            2. Use the app/Dock menu added by AfloatX.
+            3. Enable "Keep window on top" and, if desired, "Sticky mode".
 
-          local function pinVesktopPopout()
-            local popout = nil
-
-            for _, win in ipairs(hs.window.allWindows()) do
-              if isVesktop(win) then
-                if isMainDiscordWindow(win) then
-                  -- If the main Discord window was pinned by an earlier heuristic, undo it.
-                  win:setLevel(0)
-                elseif popout == nil then
-                  popout = win
-                end
-              end
-            end
-
-            if popout then
-              pinnedVesktopPopoutId = popout:id()
-              popout:setLevel(3) -- NSFloatingWindowLevel: pin above normal app windows.
-            elseif pinnedVesktopPopoutId then
-              pinnedVesktopPopoutId = nil
-            end
-          end
-
-          hs.timer.doEvery(1, pinVesktopPopout)
-          hs.timer.doAfter(1, pinVesktopPopout)
-          hs.window.filter.default:subscribe({
-            hs.window.filter.windowCreated,
-            hs.window.filter.windowTitleChanged,
-            hs.window.filter.windowFocused
-          }, function()
-            hs.timer.doAfter(0.1, pinVesktopPopout)
-          end)
-        '';
-      };
-
-      home.file."Library/LaunchAgents/com.user.hammerspoon.plist" = mkIf (use "aerospace") {
-        force = true;
-        text = ''
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>Label</key>
-            <string>com.user.hammerspoon</string>
-            <key>ProgramArguments</key>
-            <array>
-              <string>/usr/bin/open</string>
-              <string>-a</string>
-              <string>Hammerspoon</string>
-            </array>
-            <key>RunAtLoad</key>
-            <true/>
-          </dict>
-          </plist>
+          AfloatX is a MacForge plugin, so this part is intentionally interactive.
+          EOF
         '';
       };
 
