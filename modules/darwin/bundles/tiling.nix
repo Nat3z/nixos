@@ -149,12 +149,6 @@ in
       );
     };
 
-    homebrew = {
-      taps = [ "nikitabobko/tap" ];
-      casks = [ "aerospace" ];
-    };
-
-    nix-homebrew.trust.casks = mkIf (use "aerospace") [ "nikitabobko/tap/aerospace" ];
 
     services.yabai = mkIf (use "yabai") {
       enable = true;
@@ -173,63 +167,73 @@ in
       '';
     };
 
-    home-manager.users.${username} = {
-      home.file.".aerospace.toml" = mkIf (use "aerospace") {
-        force = true;
-        text = ''
-          config-version = 2
+    services.aerospace = mkIf (use "aerospace") {
+      enable = true;
+      settings = {
+        config-version = 2;
 
-          start-at-login = true
+        start-at-login = false;
 
-          after-login-command = []
-          after-startup-command = []
+        after-login-command = [ ];
+        after-startup-command = [ ];
 
-          enable-normalization-flatten-containers = true
-          enable-normalization-opposite-orientation-for-nested-containers = true
+        enable-normalization-flatten-containers = true;
+        enable-normalization-opposite-orientation-for-nested-containers = true;
 
-          accordion-padding = 30
-          default-root-container-layout = 'tiles'
-          default-root-container-orientation = 'auto'
+        accordion-padding = 30;
+        default-root-container-layout = "tiles";
+        default-root-container-orientation = "auto";
 
-          on-focus-changed = []
-          on-focused-monitor-changed = []
-          exec-on-workspace-change = ['/bin/bash', '-c', 'eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_facetime.sh "$AEROSPACE_FOCUSED_WORKSPACE"']
+        on-focus-changed = [ ];
+        on-focused-monitor-changed = [ ];
+        exec-on-workspace-change = [
+          "/bin/bash"
+          "-c"
+          ''eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_facetime.sh "$AEROSPACE_FOCUSED_WORKSPACE"''
+        ];
 
-          automatically-unhide-macos-hidden-apps = false
+        automatically-unhide-macos-hidden-apps = false;
 
-          focus-follows-mouse.enabled = true
+        focus-follows-mouse.enabled = true;
 
-          on-window-detected = [
-            {
-              if = 'test %{app-bundle-id} = com.apple.FaceTime',
-              run = [
-                'layout floating',
-                'exec-and-forget sleep 0.2; eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_facetime.sh',
-              ],
-            },
-            {
-              if = 'test %{app-bundle-id} = com.raycast.macos',
-              run = 'layout floating',
-            },
-            {
-              if = 'test %{app-bundle-id} = com.wulkano.kap',
-              run = 'layout floating',
-            },
-          ]
+        on-window-detected = [
+          {
+            "if".app-id = "com.apple.FaceTime";
+            run = [
+              "layout floating"
+              "exec-and-forget sleep 0.2; eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_facetime.sh"
+            ];
+          }
+          {
+            "if".app-id = "com.raycast.macos";
+            run = "layout floating";
+          }
+          {
+            "if".app-id = "com.wulkano.kap";
+            run = "layout floating";
+          }
+        ];
 
-          [key-mapping]
-          preset = 'qwerty'
+        key-mapping = {
+          preset = "qwerty";
+        };
 
-          [gaps]
-          inner.horizontal = 0
-          inner.vertical = 0
-          outer.left = 0
-          outer.bottom = 0
-          outer.top = 0
-          outer.right = 0
-        '';
+        gaps = {
+          inner = {
+            horizontal = 0;
+            vertical = 0;
+          };
+          outer = {
+            left = 0;
+            bottom = 0;
+            top = 0;
+            right = 0;
+          };
+        };
       };
+    };
 
+    home-manager.users.${username} = {
       home.file."Scripts/confirm-quit-front-app" = {
         force = true;
         executable = true;

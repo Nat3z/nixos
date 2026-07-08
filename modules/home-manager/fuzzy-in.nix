@@ -5,7 +5,12 @@
       if [[ $# -eq 1 ]]; then
           selected=$1
       else
-          selected=$(cd ~ && fd -d 4 --base-directory ~ --type directory --exclude .git --exclude Downloads --exclude Music --exclude node_modules --exclude target --exclude Music --exclude Pictures --exclude Public --exclude Templates --exclude Videos --exclude Desktop --exclude Applications --exclude go --exclude Movies --exclude Music --exclude Pictures --exclude Public --exclude Library | fzf-tmux)
+          selected=$(
+              cd ~ && {
+                  fd -d 4 --base-directory ~ --type directory --exclude .git --exclude Downloads --exclude Music --exclude node_modules --exclude target --exclude Music --exclude Pictures --exclude Public --exclude Templates --exclude Videos --exclude Desktop --exclude Applications --exclude go --exclude Movies --exclude Music --exclude Pictures --exclude Public --exclude Library
+                  [[ -d "$HOME/.config/nvim" ]] && printf '.config/nvim\n'
+              } | sort -u | fzf-tmux
+          )
       fi
 
       if [[ -z $selected ]]; then
