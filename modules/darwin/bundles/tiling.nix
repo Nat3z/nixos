@@ -53,11 +53,11 @@ let
   aerospaceSkhdConfig = ''
     # -------- AeroSpace shortcuts --------
 
-    fn - 1 : eval $(/opt/homebrew/bin/brew shellenv) && ~/.config/skhd/aerospace_follow_discord_popout.sh --save && aerospace workspace 1 && ~/.config/skhd/aerospace_follow_facetime.sh 1 && ~/.config/skhd/aerospace_follow_discord_popout.sh 1 >/dev/null 2>&1 &
-    fn - 2 : eval $(/opt/homebrew/bin/brew shellenv) && ~/.config/skhd/aerospace_follow_discord_popout.sh --save && aerospace workspace 2 && ~/.config/skhd/aerospace_follow_facetime.sh 2 && ~/.config/skhd/aerospace_follow_discord_popout.sh 2 >/dev/null 2>&1 &
-    fn - 3 : eval $(/opt/homebrew/bin/brew shellenv) && ~/.config/skhd/aerospace_follow_discord_popout.sh --save && aerospace workspace 3 && ~/.config/skhd/aerospace_follow_facetime.sh 3 && ~/.config/skhd/aerospace_follow_discord_popout.sh 3 >/dev/null 2>&1 &
-    fn - 4 : eval $(/opt/homebrew/bin/brew shellenv) && ~/.config/skhd/aerospace_follow_discord_popout.sh --save && aerospace workspace 4 && ~/.config/skhd/aerospace_follow_facetime.sh 4 && ~/.config/skhd/aerospace_follow_discord_popout.sh 4 >/dev/null 2>&1 &
-    fn - 5 : eval $(/opt/homebrew/bin/brew shellenv) && ~/.config/skhd/aerospace_follow_discord_popout.sh --save && aerospace workspace 5 && ~/.config/skhd/aerospace_follow_facetime.sh 5 && ~/.config/skhd/aerospace_follow_discord_popout.sh 5 >/dev/null 2>&1 &
+    fn - 1 : eval $(/opt/homebrew/bin/brew shellenv) && FRAME=$(~/.config/skhd/aerospace_follow_discord_popout.sh --print-frame) && aerospace workspace 1 && ~/.config/skhd/aerospace_follow_facetime.sh 1 && ~/.config/skhd/aerospace_follow_discord_popout.sh 1 "$FRAME" >/dev/null 2>&1 &
+    fn - 2 : eval $(/opt/homebrew/bin/brew shellenv) && FRAME=$(~/.config/skhd/aerospace_follow_discord_popout.sh --print-frame) && aerospace workspace 2 && ~/.config/skhd/aerospace_follow_facetime.sh 2 && ~/.config/skhd/aerospace_follow_discord_popout.sh 2 "$FRAME" >/dev/null 2>&1 &
+    fn - 3 : eval $(/opt/homebrew/bin/brew shellenv) && FRAME=$(~/.config/skhd/aerospace_follow_discord_popout.sh --print-frame) && aerospace workspace 3 && ~/.config/skhd/aerospace_follow_facetime.sh 3 && ~/.config/skhd/aerospace_follow_discord_popout.sh 3 "$FRAME" >/dev/null 2>&1 &
+    fn - 4 : eval $(/opt/homebrew/bin/brew shellenv) && FRAME=$(~/.config/skhd/aerospace_follow_discord_popout.sh --print-frame) && aerospace workspace 4 && ~/.config/skhd/aerospace_follow_facetime.sh 4 && ~/.config/skhd/aerospace_follow_discord_popout.sh 4 "$FRAME" >/dev/null 2>&1 &
+    fn - 5 : eval $(/opt/homebrew/bin/brew shellenv) && FRAME=$(~/.config/skhd/aerospace_follow_discord_popout.sh --print-frame) && aerospace workspace 5 && ~/.config/skhd/aerospace_follow_facetime.sh 5 && ~/.config/skhd/aerospace_follow_discord_popout.sh 5 "$FRAME" >/dev/null 2>&1 &
 
     fn + shift - 1 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 1
     fn + shift - 2 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 2
@@ -395,30 +395,8 @@ in
           #!/bin/bash
           eval "$(/opt/homebrew/bin/brew shellenv)"
 
-          SAVE_ONLY=0
-          if [ "''${1:-}" = "--save" ]; then
-              SAVE_ONLY=1
-              CURRENT_WORKSPACE=$(aerospace list-workspaces --focused)
-          else
-              CURRENT_WORKSPACE="''${1:-$(aerospace list-workspaces --focused)}"
-          fi
-
-          WINDOW_ID=$(aerospace list-windows --all --json | jq -r '
-            map(select((."app-name" | ascii_downcase) == "discord")) as $wins |
-            ($wins | map(select(((."window-title" // "") | test(" - Discord$")) | not)) | .[0]."window-id") //
-            ($wins | .[1]."window-id") //
-            empty
-          ')
-
-          if [ -z "$WINDOW_ID" ] || [ -z "$CURRENT_WORKSPACE" ]; then
-              exit 0
-          fi
-
-          WINDOW_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' | awk -F'|' -v id="$WINDOW_ID" '$1 == id { print $2; exit }')
-          FRAME_FILE="$HOME/.cache/discord-popout-frame"
-          mkdir -p "$(dirname "$FRAME_FILE")"
-
-          CURRENT_FRAME=$(/usr/bin/osascript 2>/dev/null <<'APPLESCRIPT' || true
+          print_frame() {
+              /usr/bin/osascript 2>/dev/null <<'APPLESCRIPT' || true
           tell application "Finder" to set screenBounds to bounds of window of desktop
           set screenW to item 3 of screenBounds
           set screenH to item 4 of screenBounds
@@ -435,28 +413,49 @@ in
             end tell
           end tell
           APPLESCRIPT
-          )
+          }
 
-          if echo "$CURRENT_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+,[0-9]+,[0-9]+$'; then
-              IFS=, read -r CX CY CW CH CSW CSH <<< "$CURRENT_FRAME"
-              # Learn the desired position whenever the AX frame looks real.
-              # When AeroSpace hides a floating window on a non-focused workspace,
-              # it reports a bottom-right/offscreen-ish position; don't persist that.
-              if [ "$CX" -lt $((CSW - 80)) ] && [ "$CY" -lt $((CSH - 80)) ]; then
-                  printf '%s,%s,%s,%s\n' "$CX" "$CY" "$CW" "$CH" > "$FRAME_FILE"
+          if [ "''${1:-}" = "--print-frame" ]; then
+              FRAME=$(print_frame)
+              if echo "$FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+,[0-9]+,[0-9]+$'; then
+                  IFS=, read -r X Y W H SW SH <<< "$FRAME"
+                  if [ "$X" -lt $((SW - 80)) ] && [ "$Y" -lt $((SH - 80)) ]; then
+                      printf '%s,%s,%s,%s\n' "$X" "$Y" "$W" "$H"
+                  fi
               fi
-          fi
-
-          if [ "$SAVE_ONLY" = 1 ]; then
               exit 0
           fi
 
-          if [ -s "$FRAME_FILE" ]; then
-              DESIRED_FRAME=$(cat "$FRAME_FILE")
-          elif echo "$CURRENT_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+,[0-9]+,[0-9]+$' && [ "''${CX:-99999}" -lt $(( ''${CSW:-0} - 80 )) ] && [ "''${CY:-99999}" -lt $(( ''${CSH:-0} - 80 )) ]; then
-              DESIRED_FRAME=$(echo "$CURRENT_FRAME" | cut -d, -f1-4)
+          CURRENT_WORKSPACE="''${1:-$(aerospace list-workspaces --focused)}"
+          PASSED_FRAME="''${2:-}"
+
+          WINDOW_ID=$(aerospace list-windows --all --json | jq -r '
+            map(select((."app-name" | ascii_downcase) == "discord")) as $wins |
+            ($wins | map(select(((."window-title" // "") | test(" - Discord$")) | not)) | .[0]."window-id") //
+            ($wins | .[1]."window-id") //
+            empty
+          ')
+
+          if [ -z "$WINDOW_ID" ] || [ -z "$CURRENT_WORKSPACE" ]; then
+              exit 0
+          fi
+
+          WINDOW_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' | awk -F'|' -v id="$WINDOW_ID" '$1 == id { print $2; exit }')
+
+          if echo "$PASSED_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+$'; then
+              DESIRED_FRAME="$PASSED_FRAME"
           else
-              DESIRED_FRAME="100,100,420,320"
+              CURRENT_FRAME=$(print_frame)
+              if echo "$CURRENT_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+,[0-9]+,[0-9]+$'; then
+                  IFS=, read -r CX CY CW CH CSW CSH <<< "$CURRENT_FRAME"
+                  if [ "$CX" -lt $((CSW - 80)) ] && [ "$CY" -lt $((CSH - 80)) ]; then
+                      DESIRED_FRAME="$CX,$CY,$CW,$CH"
+                  else
+                      DESIRED_FRAME="100,100,420,320"
+                  fi
+              else
+                  DESIRED_FRAME="100,100,420,320"
+              fi
           fi
 
           aerospace layout --window-id "$WINDOW_ID" floating
