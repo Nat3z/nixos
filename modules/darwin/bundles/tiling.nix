@@ -408,6 +408,44 @@ in
           fi
 
           WINDOW_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' | awk -F'|' -v id="$WINDOW_ID" '$1 == id { print $2; exit }')
+          FRAME_FILE="$HOME/.cache/discord-popout-frame"
+          mkdir -p "$(dirname "$FRAME_FILE")"
+
+          CURRENT_FRAME=$(/usr/bin/osascript 2>/dev/null <<'APPLESCRIPT' || true
+          tell application "Finder" to set screenBounds to bounds of window of desktop
+          set screenW to item 3 of screenBounds
+          set screenH to item 4 of screenBounds
+          tell application "System Events"
+            if not (exists process "Discord") then return ""
+            tell process "Discord"
+              repeat with w in windows
+                if name of w does not end with " - Discord" then
+                  set p to position of w
+                  set s to size of w
+                  return (item 1 of p as text) & "," & (item 2 of p as text) & "," & (item 1 of s as text) & "," & (item 2 of s as text) & "," & (screenW as text) & "," & (screenH as text)
+                end if
+              end repeat
+            end tell
+          end tell
+          APPLESCRIPT
+          )
+
+          if echo "$CURRENT_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+,[0-9]+,[0-9]+$'; then
+              IFS=, read -r CX CY CW CH CSW CSH <<< "$CURRENT_FRAME"
+              # Do not learn AeroSpace's bottom-right "hidden on another workspace"
+              # placement as the desired position.
+              if [ "$CX" -lt $((CSW - 80)) ] && [ "$CY" -lt $((CSH - 80)) ]; then
+                  printf '%s,%s,%s,%s\n' "$CX" "$CY" "$CW" "$CH" > "$FRAME_FILE"
+              fi
+          fi
+
+          if [ -s "$FRAME_FILE" ]; then
+              DESIRED_FRAME=$(cat "$FRAME_FILE")
+          elif echo "$CURRENT_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+,'; then
+              DESIRED_FRAME=$(echo "$CURRENT_FRAME" | cut -d, -f1-4)
+          else
+              DESIRED_FRAME="100,100,420,320"
+          fi
 
           aerospace layout --window-id "$WINDOW_ID" floating
           if [ "$WINDOW_WORKSPACE" != "$CURRENT_WORKSPACE" ]; then
@@ -415,24 +453,16 @@ in
               sleep 0.15
           fi
 
-          center_popout() {
-              /usr/bin/osascript >/dev/null 2>&1 <<'APPLESCRIPT' || true
-          tell application "Finder" to set screenBounds to bounds of window of desktop
-          set screenW to item 3 of screenBounds
-          set screenH to item 4 of screenBounds
-
-          set winW to 420
-          set winH to 320
-          set x to (screenW - winW) / 2
-          set y to (screenH - winH) / 2
-
+          restore_frame() {
+              local X="$1" Y="$2" W="$3" H="$4"
+              /usr/bin/osascript >/dev/null 2>&1 <<APPLESCRIPT || true
           tell application "System Events"
             if not (exists process "Discord") then return
             tell process "Discord"
               repeat with w in windows
                 if name of w does not end with " - Discord" then
-                  set size of w to {winW, winH}
-                  set position of w to {x, y}
+                  set size of w to {$W, $H}
+                  set position of w to {$X, $Y}
                   perform action "AXRaise" of w
                   exit repeat
                 end if
@@ -442,14 +472,14 @@ in
           APPLESCRIPT
           }
 
-          # AeroSpace can shove moved floating windows to bottom-right as if they
-          # are hidden on another workspace. Centering after the move fixes that;
-          # do it a few times to outlast the async placement.
-          center_popout
-          sleep 0.25
-          center_popout
-          sleep 0.50
-          center_popout
+          if echo "$DESIRED_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+$'; then
+              IFS=, read -r X Y W H <<< "$DESIRED_FRAME"
+              restore_frame "$X" "$Y" "$W" "$H"
+              sleep 0.25
+              restore_frame "$X" "$Y" "$W" "$H"
+              sleep 0.50
+              restore_frame "$X" "$Y" "$W" "$H"
+          fi
         '';
       };
 
