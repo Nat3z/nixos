@@ -409,8 +409,44 @@ in
               exit 0
           fi
 
+          FRAME=$(/usr/bin/osascript 2>/dev/null <<'APPLESCRIPT' || true
+          tell application "System Events"
+            if not (exists process "Discord") then return ""
+            tell process "Discord"
+              repeat with w in windows
+                set windowTitle to name of w
+                if windowTitle does not end with " - Discord" then
+                  set windowPosition to position of w
+                  set windowSize to size of w
+                  return (item 1 of windowPosition as text) & "," & (item 2 of windowPosition as text) & "," & (item 1 of windowSize as text) & "," & (item 2 of windowSize as text)
+                end if
+              end repeat
+            end tell
+          end tell
+          APPLESCRIPT
+          )
+
           aerospace layout --window-id "$WINDOW_ID" floating
           aerospace move-node-to-workspace --window-id "$WINDOW_ID" "$CURRENT_WORKSPACE"
+
+          if [ -n "$FRAME" ]; then
+              IFS=, read -r X Y W H <<< "$FRAME"
+              /usr/bin/osascript >/dev/null 2>&1 <<APPLESCRIPT || true
+          tell application "System Events"
+            if not (exists process "Discord") then return
+            tell process "Discord"
+              repeat with w in windows
+                set windowTitle to name of w
+                if windowTitle does not end with " - Discord" then
+                  set position of w to {$X, $Y}
+                  set size of w to {$W, $H}
+                  exit repeat
+                end if
+              end repeat
+            end tell
+          end tell
+          APPLESCRIPT
+          fi
         '';
       };
 
