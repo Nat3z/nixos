@@ -187,9 +187,7 @@ in
         default-root-container-layout = "tiles";
         default-root-container-orientation = "auto";
 
-        on-focus-changed = [
-          "exec-and-forget eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_discord_popout.sh"
-        ];
+        on-focus-changed = [ ];
         on-focused-monitor-changed = [ ];
         exec-on-workspace-change = [
           "/bin/bash"
@@ -426,10 +424,15 @@ in
           APPLESCRIPT
           )
 
-          aerospace layout --window-id "$WINDOW_ID" floating
-          aerospace move-node-to-workspace --window-id "$WINDOW_ID" "$CURRENT_WORKSPACE"
+          WINDOW_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' | awk -F'|' -v id="$WINDOW_ID" '$1 == id { print $2; exit }')
 
-          if [ -n "$FRAME" ]; then
+          aerospace layout --window-id "$WINDOW_ID" floating
+          if [ "$WINDOW_WORKSPACE" != "$CURRENT_WORKSPACE" ]; then
+              aerospace move-node-to-workspace --window-id "$WINDOW_ID" "$CURRENT_WORKSPACE"
+              sleep 0.15
+          fi
+
+          if echo "$FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+$'; then
               IFS=, read -r X Y W H <<< "$FRAME"
               /usr/bin/osascript >/dev/null 2>&1 <<APPLESCRIPT || true
           tell application "System Events"
