@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   username,
   ...
 }:
@@ -12,6 +13,79 @@ let
   enabled = cfg.enable;
   use = name:
     (cfg.enable && cfg.${name}.enable);
+
+  aerospaceConfigPath = "/Users/${username}/.config/aerospace/aerospace.toml";
+
+  # Shared AeroSpace settings. Written to a user-writable path so fn-t can toggle
+  # focus-follows-mouse (yabai's autoraise equivalent) without editing the nix store.
+  aerospaceSettings = {
+    config-version = 2;
+
+    start-at-login = false;
+
+    after-login-command = [ ];
+    after-startup-command = [ ];
+
+    enable-normalization-flatten-containers = true;
+    enable-normalization-opposite-orientation-for-nested-containers = true;
+
+    accordion-padding = 30;
+    default-root-container-layout = "tiles";
+    default-root-container-orientation = "auto";
+
+    on-focus-changed = [ ];
+    on-focused-monitor-changed = [ ];
+    exec-on-workspace-change = [
+      "/bin/bash"
+      "-c"
+      ''eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_facetime.sh "$AEROSPACE_FOCUSED_WORKSPACE"; ~/.config/skhd/aerospace_follow_discord_popout.sh "$AEROSPACE_FOCUSED_WORKSPACE"''
+    ];
+
+    automatically-unhide-macos-hidden-apps = false;
+
+    focus-follows-mouse.enabled = true;
+
+    on-window-detected = [
+      {
+        "if".app-id = "com.apple.FaceTime";
+        run = [
+          "layout floating"
+          "exec-and-forget sleep 0.2; eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_facetime.sh"
+        ];
+      }
+      {
+        "if".app-id = "com.raycast.macos";
+        run = "layout floating";
+      }
+      {
+        "if".app-id = "com.wulkano.kap";
+        run = "layout floating";
+      }
+      {
+        "if".app-name-regex-substring = "^[Dd]iscord$";
+        run = "exec-and-forget sleep 0.2; eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_discord_popout.sh";
+      }
+    ];
+
+    key-mapping = {
+      preset = "qwerty";
+    };
+
+    gaps = {
+      inner = {
+        horizontal = 0;
+        vertical = 0;
+      };
+      outer = {
+        left = 0;
+        bottom = 0;
+        top = 0;
+        right = 0;
+      };
+    };
+  };
+
+  aerospaceToml = (pkgs.formats.toml { }).generate "aerospace.toml" aerospaceSettings;
 
   yabaiSkhdConfig = ''
     # -------- Yabai shortcuts --------
@@ -81,8 +155,8 @@ let
     # AeroSpace workspaces are dynamic; there is no empty-space cleanup equivalent.
     fn + shift - d : true
 
-    # Focus follows mouse is configured in ~/.aerospace.toml.
-    fn - t : eval $(/opt/homebrew/bin/brew shellenv) && aerospace reload-config
+    # Toggle focus-follows-mouse (yabai autoraise equivalent).
+    fn - t : ~/.config/skhd/aerospace_toggle_ffm.sh
 
     fn - r : ~/.config/skhd/aerospace_focus_messages.sh
   '';
@@ -172,75 +246,86 @@ in
 
     services.aerospace = mkIf (use "aerospace") {
       enable = true;
-      settings = {
-        config-version = 2;
-
-        start-at-login = false;
-
-        after-login-command = [ ];
-        after-startup-command = [ ];
-
-        enable-normalization-flatten-containers = true;
-        enable-normalization-opposite-orientation-for-nested-containers = true;
-
-        accordion-padding = 30;
-        default-root-container-layout = "tiles";
-        default-root-container-orientation = "auto";
-
-        on-focus-changed = [ ];
-        on-focused-monitor-changed = [ ];
-        exec-on-workspace-change = [
-          "/bin/bash"
-          "-c"
-          ''eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_facetime.sh "$AEROSPACE_FOCUSED_WORKSPACE"; ~/.config/skhd/aerospace_follow_discord_popout.sh "$AEROSPACE_FOCUSED_WORKSPACE"''
-        ];
-
-        automatically-unhide-macos-hidden-apps = false;
-
-        focus-follows-mouse.enabled = true;
-
-        on-window-detected = [
-          {
-            "if".app-id = "com.apple.FaceTime";
-            run = [
-              "layout floating"
-              "exec-and-forget sleep 0.2; eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_facetime.sh"
-            ];
-          }
-          {
-            "if".app-id = "com.raycast.macos";
-            run = "layout floating";
-          }
-          {
-            "if".app-id = "com.wulkano.kap";
-            run = "layout floating";
-          }
-          {
-            "if".app-name-regex-substring = "^[Dd]iscord$";
-            run = "exec-and-forget sleep 0.2; eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_discord_popout.sh";
-          }
-        ];
-
-        key-mapping = {
-          preset = "qwerty";
-        };
-
-        gaps = {
-          inner = {
-            horizontal = 0;
-            vertical = 0;
-          };
-          outer = {
-            left = 0;
-            bottom = 0;
-            top = 0;
-            right = 0;
-          };
-        };
-      };
+      settings = aerospaceSettings;
     };
 
-    home-manager.users.${username} = {
+    # Prefer a user-writable config so fn-t can toggle focus-follows-mouse and reload.
+    # Seed the file here in case home-manager activation has not run yet.
+    launchd.user.agents.aerospace = mkIf (use "aerospace") {
+      command = mkForce (pkgs.writeShellScript "aerospace-with-writable-config" ''
+        set -euo pipefail
+        mkdir -p /Users/${username}/.config/aerospace
+        if [ ! -f ${aerospaceConfigPath} ]; then
+          cp ${aerospaceToml} ${aerospaceConfigPath}
+          chmod u+w ${aerospaceConfigPath}
+        fi
+        exec ${config.services.aerospace.package}/Applications/AeroSpace.app/Contents/MacOS/AeroSpace --config-path ${aerospaceConfigPath}
+      '');
+    };
+
+    # Submodule so we get home-manager's lib (lib.hm), not nix-darwin's.
+    home-manager.users.${username} = { lib, ... }: {
+      # Writable copy (not a store symlink) so fn-t can toggle focus-follows-mouse.
+      home.activation.aerospaceWritableConfig = mkIf (use "aerospace") (
+        lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+          mkdir -p "$HOME/.config/aerospace"
+          state_file="$HOME/.config/aerospace/ffm-enabled"
+          if [ -f "$HOME/.config/aerospace/aerospace.toml" ]; then
+            if grep -qE '^(focus-follows-mouse\.enabled|[[:space:]]*enabled)[[:space:]]*=[[:space:]]*false' "$HOME/.config/aerospace/aerospace.toml" \
+              || /usr/bin/awk '/^\[focus-follows-mouse\]/{f=1;next} /^\[/{f=0} f && /^enabled[[:space:]]*=[[:space:]]*false/{found=1} END{exit !found}' "$HOME/.config/aerospace/aerospace.toml"; then
+              echo false > "$state_file"
+            else
+              echo true > "$state_file"
+            fi
+          fi
+          cp ${aerospaceToml} "$HOME/.config/aerospace/aerospace.toml"
+          chmod u+w "$HOME/.config/aerospace/aerospace.toml"
+          if [ -f "$state_file" ] && [ "$(cat "$state_file")" = "false" ]; then
+            /usr/bin/sed -i '''' '/^\[focus-follows-mouse\]/,/^\[/{s/^enabled = true/enabled = false/;}' "$HOME/.config/aerospace/aerospace.toml"
+            /usr/bin/sed -i '''' -E 's/^(focus-follows-mouse\.enabled[[:space:]]*=[[:space:]]*)true/\1false/' "$HOME/.config/aerospace/aerospace.toml"
+          fi
+        ''
+      );
+
+      home.file.".config/skhd/aerospace_toggle_ffm.sh" = mkIf (use "aerospace") {
+        force = true;
+        executable = true;
+        text = ''
+          #!/bin/bash
+          # Toggle AeroSpace focus-follows-mouse (yabai autoraise equivalent).
+          eval $(/opt/homebrew/bin/brew shellenv)
+
+          CONFIG="''${HOME}/.config/aerospace/aerospace.toml"
+          STATE="''${HOME}/.config/aerospace/ffm-enabled"
+
+          if [ ! -f "$CONFIG" ]; then
+              echo "aerospace config not found: $CONFIG" >&2
+              exit 1
+          fi
+
+          is_enabled() {
+              grep -qE '^focus-follows-mouse\.enabled[[:space:]]*=[[:space:]]*true([[:space:]]|$)' "$CONFIG" \
+                  || /usr/bin/awk '/^\[focus-follows-mouse\]/{f=1;next} /^\[/{f=0} f && /^enabled[[:space:]]*=[[:space:]]*true/{found=1} END{exit !found}' "$CONFIG"
+          }
+
+          if is_enabled; then
+              /usr/bin/sed -i '''' -E 's/^(focus-follows-mouse\.enabled[[:space:]]*=[[:space:]]*)true/\1false/' "$CONFIG"
+              /usr/bin/sed -i '''' '/^\[focus-follows-mouse\]/,/^\[/{s/^enabled = true/enabled = false/;}' "$CONFIG"
+              echo false > "$STATE"
+          else
+              /usr/bin/sed -i '''' -E 's/^(focus-follows-mouse\.enabled[[:space:]]*=[[:space:]]*)false/\1true/' "$CONFIG"
+              /usr/bin/sed -i '''' '/^\[focus-follows-mouse\]/,/^\[/{s/^enabled = false/enabled = true/;}' "$CONFIG"
+              if ! grep -qE '^focus-follows-mouse\.enabled[[:space:]]*=' "$CONFIG" \
+                  && ! /usr/bin/awk '/^\[focus-follows-mouse\]/{found=1} END{exit !found}' "$CONFIG"; then
+                  printf '\nfocus-follows-mouse.enabled = true\n' >> "$CONFIG"
+              fi
+              echo true > "$STATE"
+          fi
+
+          aerospace reload-config --no-gui
+        '';
+      };
+
       home.file."Scripts/confirm-quit-front-app" = {
         force = true;
         executable = true;
