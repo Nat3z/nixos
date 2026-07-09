@@ -92,9 +92,10 @@ in
     {
       environment.systemPackages = (
         with pkgs;
-        optional cfg.neovim.enable (
-          if isDarwin then neovim else inputs.neovim-nixos.packages.${system}.nvim
-        )
+        optionals cfg.neovim.enable [
+          (if isDarwin then neovim else inputs.neovim-nixos.packages.${system}.nvim)
+          tree-sitter
+        ]
         ++ optionals cfg.vscode.enable [ vscode.fhs ]
         ++ optionals (cfg.cursor.enable && !isDarwin) [
           code-cursor
