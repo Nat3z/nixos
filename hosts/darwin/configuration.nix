@@ -101,9 +101,10 @@ in
       # figma.enable = false;
       # finetune.enable = false;
       # kicad.enable = true;
-      extraCasks = [ "tailscale-app" ];
+      extraCasks = [ "tailscale-app" "obs" ];
     };
   };
+
   # Window-management setup.
   darwin.tiling = {
     enable = true;
