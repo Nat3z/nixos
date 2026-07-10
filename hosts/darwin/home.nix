@@ -13,7 +13,6 @@
     ../../modules/home-manager/tmux.nix
     ../../modules/home-manager/fuzzy-in.nix
     ../../modules/home-manager/screenshot-keeper.nix
-    ../../modules/home-manager/discord.nix
     inputs.zen-browser.homeModules.beta
   ];
 
