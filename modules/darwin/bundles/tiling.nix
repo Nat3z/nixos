@@ -551,45 +551,23 @@ in
           #!/bin/bash
           eval "$(/opt/homebrew/bin/brew shellenv)"
 
-          # skhd + exec-on-workspace-change both invoke this; serialize to avoid races.
+          # skhd + exec-on-workspace-change both invoke this. Always record the latest
+          # target; the lock holder coalesces so rapid switches still follow.
+          TARGET_FILE="''${TMPDIR:-/tmp}/aerospace-follow-discord.target"
           LOCK_FILE="''${TMPDIR:-/tmp}/aerospace-follow-discord.lock"
-          exec 9>"$LOCK_FILE"
-          if ! flock -n 9; then
-              exit 0
-          fi
-
-          CURRENT_WORKSPACE="''${1:-$(aerospace list-workspaces --focused)}"
           FRAME_FILE="''${TMPDIR:-/tmp}/discord-popout-frame"
 
-          # Only real popouts (titles that do not end with " - Discord"). Never fall back
-          # to another Discord window — moving/raising the main client snaps focus back.
-          WINDOW_ID=$(aerospace list-windows --all --json | jq -r '
-            map(select((."app-name" | ascii_downcase) == "discord"))
-            | map(select(((."window-title" // "") | test(" - Discord$")) | not))
-            | .[0]."window-id" // empty
-          ')
-
-          if [ -z "$WINDOW_ID" ] || [ -z "$CURRENT_WORKSPACE" ]; then
+          REQUESTED="''${1:-$(aerospace list-workspaces --focused)}"
+          if [ -z "$REQUESTED" ]; then
               exit 0
           fi
+          printf '%s\n' "$REQUESTED" > "$TARGET_FILE"
 
-          # Keep whatever was focused on the destination so Discord never steals the workspace.
-          PREV_FOCUS=$(aerospace list-windows --focused --format '%{window-id}' 2>/dev/null || true)
-
-          WINDOW_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' | awk -F'|' -v id="$WINDOW_ID" '$1 == id { print $2; exit }')
-
-          if [ -s "$FRAME_FILE" ]; then
-              DESIRED_FRAME=$(cat "$FRAME_FILE")
-          else
-              DESIRED_FRAME="100,100,420,320"
+          exec 9>"$LOCK_FILE"
+          if ! flock -n 9; then
+              # Holder will re-read TARGET_FILE and move to the latest workspace.
+              exit 0
           fi
-
-          # Move first while the popout is unfocused. Floating/raising it on the old
-          # workspace activates Discord and AeroSpace follows back to that workspace.
-          if [ "$WINDOW_WORKSPACE" != "$CURRENT_WORKSPACE" ]; then
-              aerospace move-node-to-workspace --window-id "$WINDOW_ID" "$CURRENT_WORKSPACE"
-          fi
-          aerospace layout --window-id "$WINDOW_ID" floating
 
           restore_frame() {
               local X="$1" Y="$2" W="$3" H="$4"
@@ -609,16 +587,67 @@ in
           APPLESCRIPT
           }
 
-          if echo "$DESIRED_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+$'; then
-              IFS=, read -r X Y W H <<< "$DESIRED_FRAME"
-              restore_frame "$X" "$Y" "$W" "$H"
-          fi
+          while true; do
+              CURRENT_WORKSPACE=$(cat "$TARGET_FILE" 2>/dev/null || true)
+              if [ -z "$CURRENT_WORKSPACE" ]; then
+                  break
+              fi
 
-          # Pin destination + restore prior focus in case Discord still stole activation.
-          aerospace workspace "$CURRENT_WORKSPACE"
-          if [ -n "$PREV_FOCUS" ] && [ "$PREV_FOCUS" != "$WINDOW_ID" ]; then
-              aerospace focus --window-id "$PREV_FOCUS" 2>/dev/null || true
-          fi
+              # Only real popouts (titles that do not end with " - Discord"). Never fall
+              # back to another Discord window — moving the main client snaps focus back.
+              WINDOW_ID=$(aerospace list-windows --all --json | jq -r '
+                map(select((."app-name" | ascii_downcase) == "discord"))
+                | map(select(((."window-title" // "") | test(" - Discord$")) | not))
+                | .[0]."window-id" // empty
+              ')
+
+              if [ -z "$WINDOW_ID" ]; then
+                  NEW=$(cat "$TARGET_FILE" 2>/dev/null || true)
+                  [ "$NEW" = "$CURRENT_WORKSPACE" ] && break
+                  continue
+              fi
+
+              # Keep whatever was focused on the destination so Discord never steals focus.
+              PREV_FOCUS=$(aerospace list-windows --focused --format '%{window-id}' 2>/dev/null || true)
+
+              WINDOW_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' | awk -F'|' -v id="$WINDOW_ID" '$1 == id { print $2; exit }')
+
+              if [ -s "$FRAME_FILE" ]; then
+                  DESIRED_FRAME=$(cat "$FRAME_FILE")
+              else
+                  DESIRED_FRAME="100,100,420,320"
+              fi
+
+              # Move first while the popout is unfocused. Floating it on the old workspace
+              # activates Discord and AeroSpace follows back to that workspace.
+              if [ "$WINDOW_WORKSPACE" != "$CURRENT_WORKSPACE" ]; then
+                  aerospace move-node-to-workspace --window-id "$WINDOW_ID" "$CURRENT_WORKSPACE"
+              fi
+              aerospace layout --window-id "$WINDOW_ID" floating
+
+              if echo "$DESIRED_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+$'; then
+                  IFS=, read -r X Y W H <<< "$DESIRED_FRAME"
+                  restore_frame "$X" "$Y" "$W" "$H"
+              fi
+
+              NEW=$(cat "$TARGET_FILE" 2>/dev/null || true)
+              # A newer switch arrived while we worked — loop and follow that instead.
+              if [ "$NEW" != "$CURRENT_WORKSPACE" ]; then
+                  continue
+              fi
+
+              # Pin destination + restore prior focus only if this is still the latest target.
+              FOCUSED_NOW=$(aerospace list-workspaces --focused 2>/dev/null || true)
+              if [ "$FOCUSED_NOW" != "$CURRENT_WORKSPACE" ]; then
+                  aerospace workspace "$CURRENT_WORKSPACE"
+              fi
+              if [ -n "$PREV_FOCUS" ] && [ "$PREV_FOCUS" != "$WINDOW_ID" ]; then
+                  aerospace focus --window-id "$PREV_FOCUS" 2>/dev/null || true
+              fi
+
+              NEW=$(cat "$TARGET_FILE" 2>/dev/null || true)
+              [ "$NEW" = "$CURRENT_WORKSPACE" ] && break
+          done
         '';
       };
 
