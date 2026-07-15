@@ -551,19 +551,30 @@ in
           #!/bin/bash
           eval "$(/opt/homebrew/bin/brew shellenv)"
 
+          # skhd + exec-on-workspace-change both invoke this; serialize to avoid races.
+          LOCK_FILE="''${TMPDIR:-/tmp}/aerospace-follow-discord.lock"
+          exec 9>"$LOCK_FILE"
+          if ! flock -n 9; then
+              exit 0
+          fi
+
           CURRENT_WORKSPACE="''${1:-$(aerospace list-workspaces --focused)}"
           FRAME_FILE="''${TMPDIR:-/tmp}/discord-popout-frame"
 
+          # Only real popouts (titles that do not end with " - Discord"). Never fall back
+          # to another Discord window — moving/raising the main client snaps focus back.
           WINDOW_ID=$(aerospace list-windows --all --json | jq -r '
-            map(select((."app-name" | ascii_downcase) == "discord")) as $wins |
-            ($wins | map(select(((."window-title" // "") | test(" - Discord$")) | not)) | .[0]."window-id") //
-            ($wins | .[1]."window-id") //
-            empty
+            map(select((."app-name" | ascii_downcase) == "discord"))
+            | map(select(((."window-title" // "") | test(" - Discord$")) | not))
+            | .[0]."window-id" // empty
           ')
 
           if [ -z "$WINDOW_ID" ] || [ -z "$CURRENT_WORKSPACE" ]; then
               exit 0
           fi
+
+          # Keep whatever was focused on the destination so Discord never steals the workspace.
+          PREV_FOCUS=$(aerospace list-windows --focused --format '%{window-id}' 2>/dev/null || true)
 
           WINDOW_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' | awk -F'|' -v id="$WINDOW_ID" '$1 == id { print $2; exit }')
 
@@ -573,11 +584,12 @@ in
               DESIRED_FRAME="100,100,420,320"
           fi
 
-          aerospace layout --window-id "$WINDOW_ID" floating
+          # Move first while the popout is unfocused. Floating/raising it on the old
+          # workspace activates Discord and AeroSpace follows back to that workspace.
           if [ "$WINDOW_WORKSPACE" != "$CURRENT_WORKSPACE" ]; then
               aerospace move-node-to-workspace --window-id "$WINDOW_ID" "$CURRENT_WORKSPACE"
-              sleep 0.30
           fi
+          aerospace layout --window-id "$WINDOW_ID" floating
 
           restore_frame() {
               local X="$1" Y="$2" W="$3" H="$4"
@@ -589,7 +601,6 @@ in
                 if name of w does not end with " - Discord" then
                   set size of w to {$W, $H}
                   set position of w to {$X, $Y}
-                  perform action "AXRaise" of w
                   exit repeat
                 end if
               end repeat
@@ -601,6 +612,12 @@ in
           if echo "$DESIRED_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+$'; then
               IFS=, read -r X Y W H <<< "$DESIRED_FRAME"
               restore_frame "$X" "$Y" "$W" "$H"
+          fi
+
+          # Pin destination + restore prior focus in case Discord still stole activation.
+          aerospace workspace "$CURRENT_WORKSPACE"
+          if [ -n "$PREV_FOCUS" ] && [ "$PREV_FOCUS" != "$WINDOW_ID" ]; then
+              aerospace focus --window-id "$PREV_FOCUS" 2>/dev/null || true
           fi
         '';
       };
