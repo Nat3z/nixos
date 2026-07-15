@@ -159,6 +159,10 @@ let
     fn - t : ~/.config/skhd/aerospace_toggle_ffm.sh
 
     fn - r : ~/.config/skhd/aerospace_focus_messages.sh
+
+    # Temporarily hide/reveal the active FaceTime or Discord popout follow window.
+    # 0x32 = ANSI grave/backtick (fn-`).
+    fn - 0x32 : ~/.config/skhd/aerospace_toggle_follow_hide.sh
   '';
 
   appSkhdConfig = ''
@@ -553,21 +557,41 @@ in
 
           # skhd + exec-on-workspace-change both invoke this. Always record the latest
           # target; the lock holder coalesces so rapid switches still follow.
+          # Use mkdir locking — macOS has no flock(1).
           TARGET_FILE="''${TMPDIR:-/tmp}/aerospace-follow-discord.target"
-          LOCK_FILE="''${TMPDIR:-/tmp}/aerospace-follow-discord.lock"
+          LOCK_DIR="''${TMPDIR:-/tmp}/aerospace-follow-discord.lockdir"
           FRAME_FILE="''${TMPDIR:-/tmp}/discord-popout-frame"
+
+          HIDE_STATE="''${TMPDIR:-/tmp}/aerospace-follow-hidden"
+          HIDDEN_WS="hidden"
+
+          # fn-grave hide: do not drag the popout back onto the focused workspace.
+          if [ -f "$HIDE_STATE" ] && grep -q '^kind=discord$' "$HIDE_STATE" 2>/dev/null; then
+              exit 0
+          fi
 
           REQUESTED="''${1:-$(aerospace list-workspaces --focused)}"
           if [ -z "$REQUESTED" ]; then
               exit 0
           fi
-          printf '%s\n' "$REQUESTED" > "$TARGET_FILE"
-
-          exec 9>"$LOCK_FILE"
-          if ! flock -n 9; then
-              # Holder will re-read TARGET_FILE and move to the latest workspace.
+          # Never treat the hide scratch workspace as a follow destination.
+          if [ "$REQUESTED" = "$HIDDEN_WS" ]; then
               exit 0
           fi
+          printf '%s\n' "$REQUESTED" > "$TARGET_FILE"
+
+          if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+              # Stale lock from a killed run: steal if older than 10s.
+              LOCK_AGE=$(( $(date +%s) - $(stat -f %m "$LOCK_DIR" 2>/dev/null || echo 0) ))
+              if [ "$LOCK_AGE" -gt 10 ]; then
+                  rm -rf "$LOCK_DIR"
+                  mkdir "$LOCK_DIR" 2>/dev/null || exit 0
+              else
+                  # Holder will re-read TARGET_FILE and move to the latest workspace.
+                  exit 0
+              fi
+          fi
+          trap 'rm -rf "$LOCK_DIR"' EXIT
 
           restore_frame() {
               local X="$1" Y="$2" W="$3" H="$4"
@@ -588,8 +612,12 @@ in
           }
 
           while true; do
+              if [ -f "$HIDE_STATE" ] && grep -q '^kind=discord$' "$HIDE_STATE" 2>/dev/null; then
+                  break
+              fi
+
               CURRENT_WORKSPACE=$(cat "$TARGET_FILE" 2>/dev/null || true)
-              if [ -z "$CURRENT_WORKSPACE" ]; then
+              if [ -z "$CURRENT_WORKSPACE" ] || [ "$CURRENT_WORKSPACE" = "$HIDDEN_WS" ]; then
                   break
               fi
 
@@ -658,7 +686,18 @@ in
           #!/bin/bash
           eval $(/opt/homebrew/bin/brew shellenv)
 
+          HIDE_STATE="''${TMPDIR:-/tmp}/aerospace-follow-hidden"
+          HIDDEN_WS="hidden"
+
+          # fn-grave hide: keep FaceTime on the scratch workspace until revealed.
+          if [ -f "$HIDE_STATE" ] && grep -q '^kind=facetime$' "$HIDE_STATE" 2>/dev/null; then
+              exit 0
+          fi
+
           CURRENT_WORKSPACE="''${1:-$(aerospace list-workspaces --focused)}"
+          if [ -z "$CURRENT_WORKSPACE" ] || [ "$CURRENT_WORKSPACE" = "$HIDDEN_WS" ]; then
+              exit 0
+          fi
 
           WINDOW_IDS=$(aerospace list-windows --all --format '%{window-id}|%{app-name}' | awk -F'|' 'tolower($2) == "facetime" { print $1 }')
 
@@ -672,6 +711,139 @@ in
                   aerospace move-node-to-workspace --window-id "$id" "$CURRENT_WORKSPACE"
               fi
           done
+        '';
+      };
+
+      home.file.".config/skhd/aerospace_toggle_follow_hide.sh" = mkIf (use "aerospace") {
+        force = true;
+        executable = true;
+        text = ''
+          #!/bin/bash
+          eval "$(/opt/homebrew/bin/brew shellenv)"
+
+          # fn-grave: park the active FaceTime / Discord popout on a scratch workspace
+          # and leave it there until pressed again (follow scripts respect the state file).
+          STATE_FILE="''${TMPDIR:-/tmp}/aerospace-follow-hidden"
+          HIDDEN_WS="hidden"
+          FRAME_FILE="''${TMPDIR:-/tmp}/discord-popout-frame"
+
+          restore_discord_frame() {
+              local X="$1" Y="$2" W="$3" H="$4"
+              /usr/bin/osascript >/dev/null 2>&1 <<APPLESCRIPT || true
+          tell application "System Events"
+            if not (exists process "Discord") then return
+            tell process "Discord"
+              repeat with w in windows
+                if name of w does not end with " - Discord" then
+                  set size of w to {$W, $H}
+                  set position of w to {$X, $Y}
+                  exit repeat
+                end if
+              end repeat
+            end tell
+          end tell
+          APPLESCRIPT
+          }
+
+          reveal_ids() {
+              local kind="$1"
+              local ids="$2"
+              local current prev id
+              current=$(aerospace list-workspaces --focused 2>/dev/null || true)
+              if [ -z "$current" ] || [ "$current" = "$HIDDEN_WS" ]; then
+                  return 0
+              fi
+              prev=$(aerospace list-windows --focused --format '%{window-id}' 2>/dev/null || true)
+
+              for id in $ids; do
+                  [ -n "$id" ] || continue
+                  aerospace move-node-to-workspace --window-id "$id" "$current" 2>/dev/null || true
+                  aerospace layout --window-id "$id" floating 2>/dev/null || true
+              done
+
+              if [ "$kind" = "discord" ]; then
+                  if [ -s "$FRAME_FILE" ] && grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+$' "$FRAME_FILE"; then
+                      IFS=, read -r X Y W H < "$FRAME_FILE"
+                      restore_discord_frame "$X" "$Y" "$W" "$H"
+                  fi
+              fi
+
+              if [ -n "$prev" ]; then
+                  aerospace focus --window-id "$prev" 2>/dev/null || true
+              fi
+          }
+
+          # Reveal if we have saved hide state, or anything parked on the scratch workspace.
+          if [ -f "$STATE_FILE" ]; then
+              KIND=$(awk -F= '/^kind=/{print $2; exit}' "$STATE_FILE")
+              IDS=$(awk -F= '/^ids=/{print $2; exit}' "$STATE_FILE" | tr ',' ' ')
+              rm -f "$STATE_FILE"
+              reveal_ids "$KIND" "$IDS"
+              exit 0
+          fi
+
+          PARKED=$(aerospace list-windows --workspace "$HIDDEN_WS" --format '%{window-id}|%{app-name}|%{window-title}' 2>/dev/null || true)
+          if [ -n "$PARKED" ]; then
+              FT_IDS=$(printf '%s\n' "$PARKED" | awk -F'|' 'tolower($2) == "facetime" { print $1 }' | tr '\n' ' ')
+              DC_IDS=$(printf '%s\n' "$PARKED" | awk -F'|' '
+                tolower($2) == "discord" && $3 !~ / - Discord$/ { print $1 }
+              ' | tr '\n' ' ')
+              if [ -n "$FT_IDS" ]; then
+                  reveal_ids facetime "$FT_IDS"
+              elif [ -n "$DC_IDS" ]; then
+                  reveal_ids discord "$DC_IDS"
+              fi
+              exit 0
+          fi
+
+          FOCUSED_WS=$(aerospace list-workspaces --focused 2>/dev/null || true)
+          [ -z "$FOCUSED_WS" ] && exit 0
+
+          # Prefer FaceTime when present, else Discord popout. Prefer the focused workspace.
+          FT_FOCUSED=$(aerospace list-windows --workspace "$FOCUSED_WS" --format '%{window-id}|%{app-name}' 2>/dev/null \
+            | awk -F'|' 'tolower($2) == "facetime" { print $1 }' | tr '\n' ' ')
+          FT_ANY=$(aerospace list-windows --all --format '%{window-id}|%{app-name}' 2>/dev/null \
+            | awk -F'|' 'tolower($2) == "facetime" { print $1 }' | tr '\n' ' ')
+
+          DC_ID=$(aerospace list-windows --all --json 2>/dev/null | jq -r '
+            map(select((."app-name" | ascii_downcase) == "discord"))
+            | map(select(((."window-title" // "") | test(" - Discord$")) | not))
+            | .[0]."window-id" // empty
+          ')
+
+          KIND=""
+          IDS=""
+          if [ -n "$FT_FOCUSED" ]; then
+              KIND=facetime
+              IDS="$FT_FOCUSED"
+          elif [ -n "$FT_ANY" ]; then
+              KIND=facetime
+              IDS="$FT_ANY"
+          elif [ -n "$DC_ID" ]; then
+              KIND=discord
+              IDS="$DC_ID"
+          else
+              exit 0
+          fi
+
+          PREV_FOCUS=$(aerospace list-windows --focused --format '%{window-id}' 2>/dev/null || true)
+
+          ID_CSV=$(echo "$IDS" | awk '{$1=$1; gsub(/ /,","); print}')
+          {
+              echo "kind=$KIND"
+              echo "ids=$ID_CSV"
+          } > "$STATE_FILE"
+
+          for id in $IDS; do
+              [ -n "$id" ] || continue
+              aerospace move-node-to-workspace --window-id "$id" "$HIDDEN_WS" 2>/dev/null || true
+          done
+
+          # Stay on the current workspace; moving a window can steal focus.
+          aerospace workspace "$FOCUSED_WS" 2>/dev/null || true
+          if [ -n "$PREV_FOCUS" ]; then
+              aerospace focus --window-id "$PREV_FOCUS" 2>/dev/null || true
+          fi
         '';
       };
 
