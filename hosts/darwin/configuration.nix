@@ -63,6 +63,7 @@ in
     # Toolchains / AI
     buildchains.enable = true;
     ai.enable = true;
+    terminal-shortcuts.enable = true;
 
     # Darwin package backend and Homebrew-only developer tools.
     homebrew = {
