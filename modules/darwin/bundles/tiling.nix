@@ -578,20 +578,68 @@ in
           if [ "$REQUESTED" = "$HIDDEN_WS" ]; then
               exit 0
           fi
-          printf '%s\n' "$REQUESTED" > "$TARGET_FILE"
+          # Publish without exposing a truncated target to the active worker.
+          publish_target() {
+              local VALUE="$1"
+              local TARGET_TMP="$TARGET_FILE.$$.$RANDOM"
+              if ! printf '%s\n' "$VALUE" > "$TARGET_TMP" || ! mv -f "$TARGET_TMP" "$TARGET_FILE"; then
+                  rm -f "$TARGET_TMP"
+                  return 1
+              fi
+          }
 
-          if ! mkdir "$LOCK_DIR" 2>/dev/null; then
-              # Stale lock from a killed run: steal if older than 10s.
-              LOCK_AGE=$(( $(date +%s) - $(stat -f %m "$LOCK_DIR" 2>/dev/null || echo 0) ))
-              if [ "$LOCK_AGE" -gt 10 ]; then
-                  rm -rf "$LOCK_DIR"
-                  mkdir "$LOCK_DIR" 2>/dev/null || exit 0
-              else
-                  # Holder will re-read TARGET_FILE and move to the latest workspace.
+          publish_target "$REQUESTED" || exit 0
+
+          # Wait for the current worker instead of assuming it will observe a target
+          # published during its final read/lock-release window.
+          LOCK_OWNER="$LOCK_DIR/owner"
+          while ! mkdir "$LOCK_DIR" 2>/dev/null; do
+              # Older queued invocations can leave once a newer target supersedes them.
+              LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
+              if [ "$LATEST" != "$REQUESTED" ]; then
                   exit 0
               fi
+
+              OWNER=$(cat "$LOCK_OWNER" 2>/dev/null || true)
+              if echo "$OWNER" | grep -Eq '^[0-9]+$' && kill -0 "$OWNER" 2>/dev/null; then
+                  sleep 0.05
+                  continue
+              fi
+
+              # A newly created lock may not have its owner file yet. Only reclaim an
+              # ownerless lock after a grace period; dead recorded owners are safe now.
+              LOCK_AGE=$(( $(date +%s) - $(stat -f %m "$LOCK_DIR" 2>/dev/null || echo 0) ))
+              if [ -z "$OWNER" ] && [ "$LOCK_AGE" -le 2 ]; then
+                  sleep 0.05
+                  continue
+              fi
+
+              STALE_LOCK="$LOCK_DIR.stale.$$.$RANDOM"
+              if mv "$LOCK_DIR" "$STALE_LOCK" 2>/dev/null; then
+                  rm -rf "$STALE_LOCK"
+              else
+                  sleep 0.05
+              fi
+          done
+          printf '%s\n' "$$" > "$LOCK_OWNER"
+
+          cleanup_lock() {
+              OWNER=$(cat "$LOCK_OWNER" 2>/dev/null || true)
+              if [ "$OWNER" = "$$" ]; then
+                  rm -rf "$LOCK_DIR"
+              fi
+          }
+          trap cleanup_lock EXIT
+
+          # Collapse bursts before taking focus/frame snapshots and moving the popout.
+          sleep 0.08
+
+          # Hook processes can finish startup out of order. AeroSpace's focused
+          # workspace is the authoritative final destination after the debounce.
+          FOCUSED_TARGET=$(aerospace list-workspaces --focused 2>/dev/null || true)
+          if [ -n "$FOCUSED_TARGET" ] && [ "$FOCUSED_TARGET" != "$HIDDEN_WS" ]; then
+              publish_target "$FOCUSED_TARGET" || exit 0
           fi
-          trap 'rm -rf "$LOCK_DIR"' EXIT
 
           restore_frame() {
               local X="$1" Y="$2" W="$3" H="$4"
@@ -669,6 +717,12 @@ in
               if [ "$FOCUSED_NOW" != "$CURRENT_WORKSPACE" ]; then
                   aerospace workspace "$CURRENT_WORKSPACE"
               fi
+
+              NEW=$(cat "$TARGET_FILE" 2>/dev/null || true)
+              if [ "$NEW" != "$CURRENT_WORKSPACE" ]; then
+                  continue
+              fi
+
               if [ -n "$PREV_FOCUS" ] && [ "$PREV_FOCUS" != "$WINDOW_ID" ]; then
                   aerospace focus --window-id "$PREV_FOCUS" 2>/dev/null || true
               fi
