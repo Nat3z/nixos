@@ -93,6 +93,7 @@ in
       media.enable = true;
       fonts.enable = true;
       music.enable = true;
+      vibeproxy.enable = true;
       # design.enable = false;
       # cad.enable = true;
       # windowManagers.enable = true;

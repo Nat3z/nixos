@@ -68,6 +68,11 @@ let
       default = false;
       description = "Install Finetune.";
     };
+    vibeproxy.enable = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Install VibeProxy.";
+    };
     kicad.enable = mkOption {
       type = types.bool;
       default = false;
@@ -135,6 +140,7 @@ in
         ++ optional (use "cad" && use "kicad") "kicad"
         ++ optional (use "sikarugir") "sikarugir"
         ++ optional (use "cursorcerer") "cursorcerer"
+        ++ optional (use "vibeproxy") "vibeproxy"
         ++ optional (use "music") "musescore"
         ++ extraCasks;
 
