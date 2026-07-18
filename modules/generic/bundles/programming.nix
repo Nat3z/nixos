@@ -198,7 +198,7 @@ in
           };
           initContent = optionalString isDarwin ''
             eval "$(/opt/homebrew/bin/brew shellenv)"
-            alias claude="$HOME/.claude/local/claude"
+            PATH=$HOME/.local/bin:$PATH
             [[ -f "$HOME/extra.zshrc" ]] && source "$HOME/extra.zshrc"
           '';
         };
