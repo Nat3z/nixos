@@ -34,12 +34,14 @@ let
     default-root-container-orientation = "auto";
 
     on-focus-changed = [ ];
-    on-focused-monitor-changed = [ ];
-    exec-on-workspace-change = [
-      "/bin/bash"
-      "-c"
-      ''eval "$(/opt/homebrew/bin/brew shellenv)"; ~/.config/skhd/aerospace_follow_facetime.sh "$AEROSPACE_FOCUSED_WORKSPACE"; ~/.config/skhd/aerospace_follow_discord_popout.sh "$AEROSPACE_FOCUSED_WORKSPACE"''
+    # Keep focus-follows-mouse from immediately returning to the previous monitor
+    # after a keyboard-driven workspace switch.
+    on-focused-monitor-changed = [
+      "move-mouse monitor-lazy-center"
     ];
+    # SKHD passes the requested workspace directly to the follower scripts. Running
+    # them from this callback races AeroSpace's transiently empty window inventory.
+    exec-on-workspace-change = [ ];
 
     automatically-unhide-macos-hidden-apps = false;
 
@@ -137,18 +139,17 @@ let
   aerospaceSkhdConfig = ''
     # -------- AeroSpace shortcuts --------
 
-    # Workspace changes must stay synchronous. The AeroSpace workspace-change hook
-    # runs the followers once the requested workspace is actually focused.
-    fn - 1 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 1
-    fn - 2 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 2
-    fn - 3 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 3
-    fn - 4 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 4
-    fn - 5 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 5
-    fn - 6 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 6
-    fn - 7 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 7
-    fn - 8 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 8
-    fn - 9 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 9
-    fn - 0 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 10
+    # The wrapper coalesces concurrent SKHD command processes so the newest key wins.
+    fn - 1 : ~/.config/skhd/aerospace_switch_workspace.sh 1
+    fn - 2 : ~/.config/skhd/aerospace_switch_workspace.sh 2
+    fn - 3 : ~/.config/skhd/aerospace_switch_workspace.sh 3
+    fn - 4 : ~/.config/skhd/aerospace_switch_workspace.sh 4
+    fn - 5 : ~/.config/skhd/aerospace_switch_workspace.sh 5
+    fn - 6 : ~/.config/skhd/aerospace_switch_workspace.sh 6
+    fn - 7 : ~/.config/skhd/aerospace_switch_workspace.sh 7
+    fn - 8 : ~/.config/skhd/aerospace_switch_workspace.sh 8
+    fn - 9 : ~/.config/skhd/aerospace_switch_workspace.sh 9
+    fn - 0 : ~/.config/skhd/aerospace_switch_workspace.sh 10
 
     fn + shift - 1 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 1
     fn + shift - 2 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 2
@@ -569,6 +570,45 @@ in
         '';
       };
 
+      home.file.".config/skhd/aerospace_switch_workspace.sh" = mkIf (use "aerospace") {
+        force = true;
+        executable = true;
+        text = ''
+          #!/bin/bash
+          eval "$(/opt/homebrew/bin/brew shellenv)"
+
+          REQUESTED="''${1:-}"
+          [ -n "$REQUESTED" ] || exit 0
+
+          TARGET_FILE="''${TMPDIR:-/tmp}/aerospace-switch-workspace.target"
+          TARGET_TMP="$TARGET_FILE.$$.$RANDOM"
+          printf '%s\n' "$REQUESTED" > "$TARGET_TMP" || exit 0
+          mv -f "$TARGET_TMP" "$TARGET_FILE" || exit 0
+
+          cleanup_target() {
+              LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
+              [ "$LATEST" != "$REQUESTED" ] || rm -f "$TARGET_FILE"
+          }
+          trap cleanup_target EXIT
+
+          # Let a burst of keypresses publish before starting work; only the newest wins.
+          sleep 0.03
+          LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
+          [ "$LATEST" = "$REQUESTED" ] || exit 0
+
+          aerospace workspace "$REQUESTED" 2>/dev/null || true
+          ~/.config/skhd/aerospace_follow_facetime.sh "$REQUESTED"
+
+          LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
+          [ "$LATEST" = "$REQUESTED" ] || exit 0
+          ~/.config/skhd/aerospace_follow_discord_popout.sh "$REQUESTED"
+
+          LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
+          [ "$LATEST" = "$REQUESTED" ] || exit 0
+          aerospace workspace "$REQUESTED" 2>/dev/null || true
+        '';
+      };
+
       home.file.".config/skhd/aerospace_follow_discord_popout.sh" = {
         force = true;
         executable = true;
@@ -576,12 +616,13 @@ in
           #!/bin/bash
           eval "$(/opt/homebrew/bin/brew shellenv)"
 
-          # Workspace-change and window-detected hooks can overlap. Always record the
-          # latest target; the lock holder coalesces so rapid switches still follow.
+          # SKHD switches and window-detected hooks can overlap. Always record the latest
+          # target; the lock holder coalesces so rapid switches still follow.
           # Use mkdir locking — macOS has no flock(1).
           TARGET_FILE="''${TMPDIR:-/tmp}/aerospace-follow-discord.target"
           LOCK_DIR="''${TMPDIR:-/tmp}/aerospace-follow-discord.lockdir"
           FRAME_FILE="''${TMPDIR:-/tmp}/discord-popout-frame"
+          SWITCH_TARGET_FILE="''${TMPDIR:-/tmp}/aerospace-switch-workspace.target"
 
           HIDE_STATE="''${TMPDIR:-/tmp}/aerospace-follow-hidden"
           HIDDEN_WS="hidden"
@@ -592,6 +633,10 @@ in
           fi
 
           REQUESTED="''${1:-$(aerospace list-workspaces --focused)}"
+          SWITCH_TARGET=$(cat "$SWITCH_TARGET_FILE" 2>/dev/null || true)
+          if [ -n "$SWITCH_TARGET" ]; then
+              REQUESTED="$SWITCH_TARGET"
+          fi
           if [ -z "$REQUESTED" ]; then
               exit 0
           fi
@@ -655,13 +700,6 @@ in
           # Collapse bursts before taking focus/frame snapshots and moving the popout.
           sleep 0.08
 
-          # Hook processes can finish startup out of order. AeroSpace's focused
-          # workspace is the authoritative final destination after the debounce.
-          FOCUSED_TARGET=$(aerospace list-workspaces --focused 2>/dev/null || true)
-          if [ -n "$FOCUSED_TARGET" ] && [ "$FOCUSED_TARGET" != "$HIDDEN_WS" ]; then
-              publish_target "$FOCUSED_TARGET" || exit 0
-          fi
-
           restore_frame() {
               local X="$1" Y="$2" W="$3" H="$4"
               /usr/bin/osascript >/dev/null 2>&1 <<APPLESCRIPT || true
@@ -692,11 +730,18 @@ in
 
               # Follow only a secondary/popout Discord window. The main client title
               # ends in " - Discord" and must remain on its assigned workspace.
-              WINDOW_ID=$(aerospace list-windows --all --json | jq -r '
-                map(select((."app-name" | ascii_downcase) == "discord"))
-                | map(select(((."window-title" // "") | test(" - Discord$")) | not))
-                | .[0]."window-id" // empty
-              ')
+              # AeroSpace can briefly report an empty window list from inside its
+              # workspace-change callback. Retry long enough for its inventory to settle.
+              WINDOW_ID=""
+              for _ in 1 2 3 4 5; do
+                  WINDOW_ID=$(aerospace list-windows --all --json | jq -r '
+                    map(select((."app-name" | ascii_downcase) == "discord"))
+                    | map(select(((."window-title" // "") | test(" - Discord$")) | not))
+                    | .[0]."window-id" // empty
+                  ')
+                  [ -n "$WINDOW_ID" ] && break
+                  sleep 0.1
+              done
 
               if [ -z "$WINDOW_ID" ]; then
                   NEW=$(cat "$TARGET_FILE" 2>/dev/null || true)
@@ -767,16 +812,21 @@ in
 
           HIDE_STATE="''${TMPDIR:-/tmp}/aerospace-follow-hidden"
           HIDDEN_WS="hidden"
+          SWITCH_TARGET_FILE="''${TMPDIR:-/tmp}/aerospace-switch-workspace.target"
 
           # fn-grave hide: keep FaceTime on the scratch workspace until revealed.
           if [ -f "$HIDE_STATE" ] && grep -q '^kind=facetime$' "$HIDE_STATE" 2>/dev/null; then
               exit 0
           fi
 
-          # Workspace-change hooks can finish out of order during rapid switching.
-          # Debounce, then use AeroSpace's current workspace as the authority.
+          # Debounce without replacing the explicit event target with a potentially
+          # unrelated workspace focused by another monitor or focus-follows-mouse.
+          CURRENT_WORKSPACE="''${1:-$(aerospace list-workspaces --focused)}"
           sleep 0.08
-          CURRENT_WORKSPACE=$(aerospace list-workspaces --focused 2>/dev/null || true)
+          SWITCH_TARGET=$(cat "$SWITCH_TARGET_FILE" 2>/dev/null || true)
+          if [ -n "$SWITCH_TARGET" ]; then
+              CURRENT_WORKSPACE="$SWITCH_TARGET"
+          fi
           if [ -z "$CURRENT_WORKSPACE" ] || [ "$CURRENT_WORKSPACE" = "$HIDDEN_WS" ]; then
               exit 0
           fi

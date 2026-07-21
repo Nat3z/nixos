@@ -67,9 +67,7 @@ in
 
       ${lib.optionalString pkgs.stdenv.isDarwin ''
         echo "Restarting skhd.."
-        skhd --uninstall-service
-        killall skhd
-        skhd --install-service
+        launchctl kickstart -k "gui/$UID/org.nixos.skhd"
       ''}
     '')
 
