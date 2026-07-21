@@ -16,6 +16,15 @@ let
 
   aerospaceConfigPath = "/Users/${username}/.config/aerospace/aerospace.toml";
 
+  # 0.21.3 fixes Wispr Flow's status popup being treated as a focusable window.
+  aerospacePackage = pkgs.aerospace.overrideAttrs (_: rec {
+    version = "0.21.3-Beta";
+    src = pkgs.fetchzip {
+      url = "https://github.com/nikitabobko/AeroSpace/releases/download/v${version}/AeroSpace-v${version}.zip";
+      hash = "sha256-JHXtF3IKUbge7z2cMBi4L9IruiByNPCIKugLe4ymvys=";
+    };
+  });
+
   # Shared AeroSpace settings. Written to a user-writable path so fn-t can toggle
   # focus-follows-mouse (yabai's autoraise equivalent) without editing the nix store.
   aerospaceSettings = {
@@ -272,6 +281,7 @@ in
 
     services.aerospace = mkIf (use "aerospace") {
       enable = true;
+      package = aerospacePackage;
       settings = aerospaceSettings;
     };
 
