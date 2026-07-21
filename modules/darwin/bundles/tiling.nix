@@ -95,12 +95,22 @@ let
     fn - 3 : yabai -m space --focus 3
     fn - 4 : yabai -m space --focus 4
     fn - 5 : yabai -m space --focus 5
+    fn - 6 : yabai -m space --focus 6
+    fn - 7 : yabai -m space --focus 7
+    fn - 8 : yabai -m space --focus 8
+    fn - 9 : yabai -m space --focus 9
+    fn - 0 : yabai -m space --focus 10
 
     fn + shift - 1 : yabai -m window --space 1
     fn + shift - 2 : yabai -m window --space 2
     fn + shift - 3 : yabai -m window --space 3
     fn + shift - 4 : yabai -m window --space 4
     fn + shift - 5 : yabai -m window --space 5
+    fn + shift - 6 : yabai -m window --space 6
+    fn + shift - 7 : yabai -m window --space 7
+    fn + shift - 8 : yabai -m window --space 8
+    fn + shift - 9 : yabai -m window --space 9
+    fn + shift - 0 : yabai -m window --space 10
 
     fn + shift - k : yabai -m window --warp north
     fn + shift - h : yabai -m window --warp west
@@ -132,12 +142,22 @@ let
     fn - 3 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 3 && ~/.config/skhd/aerospace_follow_facetime.sh 3 && ~/.config/skhd/aerospace_follow_discord_popout.sh 3 >/dev/null 2>&1 &
     fn - 4 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 4 && ~/.config/skhd/aerospace_follow_facetime.sh 4 && ~/.config/skhd/aerospace_follow_discord_popout.sh 4 >/dev/null 2>&1 &
     fn - 5 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 5 && ~/.config/skhd/aerospace_follow_facetime.sh 5 && ~/.config/skhd/aerospace_follow_discord_popout.sh 5 >/dev/null 2>&1 &
+    fn - 6 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 6 && ~/.config/skhd/aerospace_follow_facetime.sh 6 && ~/.config/skhd/aerospace_follow_discord_popout.sh 6 >/dev/null 2>&1 &
+    fn - 7 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 7 && ~/.config/skhd/aerospace_follow_facetime.sh 7 && ~/.config/skhd/aerospace_follow_discord_popout.sh 7 >/dev/null 2>&1 &
+    fn - 8 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 8 && ~/.config/skhd/aerospace_follow_facetime.sh 8 && ~/.config/skhd/aerospace_follow_discord_popout.sh 8 >/dev/null 2>&1 &
+    fn - 9 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 9 && ~/.config/skhd/aerospace_follow_facetime.sh 9 && ~/.config/skhd/aerospace_follow_discord_popout.sh 9 >/dev/null 2>&1 &
+    fn - 0 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 10 && ~/.config/skhd/aerospace_follow_facetime.sh 10 && ~/.config/skhd/aerospace_follow_discord_popout.sh 10 >/dev/null 2>&1 &
 
     fn + shift - 1 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 1
     fn + shift - 2 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 2
     fn + shift - 3 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 3
     fn + shift - 4 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 4
     fn + shift - 5 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 5
+    fn + shift - 6 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 6
+    fn + shift - 7 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 7
+    fn + shift - 8 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 8
+    fn + shift - 9 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 9
+    fn + shift - 0 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 10
 
     fn + shift - k : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move up
     fn + shift - h : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move left
@@ -173,7 +193,6 @@ let
         "facetime" : /bin/bash -lc '/Users/nat/Scripts/confirm-quit-front-app close; ~/.config/skhd/aerospace_reflow.sh >/dev/null 2>&1 &'
     ]
 
-    fn - 0 : killall Finder
     fn - q : pgrep -x "ghostty" && osascript -e 'tell application "System Events" to tell process "Ghostty" to click menu item "New Window" of menu "File" of menu bar item "File" of menu bar 1' || open -a "Ghostty"
     fn - e : osascript -e 'tell application "Finder" to make new Finder window to home'
     fn - b : pgrep -x "helium" && osascript -e 'tell application "System Events" to tell process "Helium" to click menu item "New Window" of menu "File" of menu bar item "File" of menu bar 1' || open -a "Helium"
