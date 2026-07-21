@@ -38,7 +38,7 @@ let
     exec-on-workspace-change = [
       "/bin/bash"
       "-c"
-      ''eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_facetime.sh "$AEROSPACE_FOCUSED_WORKSPACE"; ~/.config/skhd/aerospace_follow_discord_popout.sh "$AEROSPACE_FOCUSED_WORKSPACE"''
+      ''eval "$(/opt/homebrew/bin/brew shellenv)"; ~/.config/skhd/aerospace_follow_facetime.sh "$AEROSPACE_FOCUSED_WORKSPACE"; ~/.config/skhd/aerospace_follow_discord_popout.sh "$AEROSPACE_FOCUSED_WORKSPACE"''
     ];
 
     automatically-unhide-macos-hidden-apps = false;
@@ -137,16 +137,18 @@ let
   aerospaceSkhdConfig = ''
     # -------- AeroSpace shortcuts --------
 
-    fn - 1 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 1 && ~/.config/skhd/aerospace_follow_facetime.sh 1 && ~/.config/skhd/aerospace_follow_discord_popout.sh 1 >/dev/null 2>&1 &
-    fn - 2 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 2 && ~/.config/skhd/aerospace_follow_facetime.sh 2 && ~/.config/skhd/aerospace_follow_discord_popout.sh 2 >/dev/null 2>&1 &
-    fn - 3 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 3 && ~/.config/skhd/aerospace_follow_facetime.sh 3 && ~/.config/skhd/aerospace_follow_discord_popout.sh 3 >/dev/null 2>&1 &
-    fn - 4 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 4 && ~/.config/skhd/aerospace_follow_facetime.sh 4 && ~/.config/skhd/aerospace_follow_discord_popout.sh 4 >/dev/null 2>&1 &
-    fn - 5 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 5 && ~/.config/skhd/aerospace_follow_facetime.sh 5 && ~/.config/skhd/aerospace_follow_discord_popout.sh 5 >/dev/null 2>&1 &
-    fn - 6 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 6 && ~/.config/skhd/aerospace_follow_facetime.sh 6 && ~/.config/skhd/aerospace_follow_discord_popout.sh 6 >/dev/null 2>&1 &
-    fn - 7 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 7 && ~/.config/skhd/aerospace_follow_facetime.sh 7 && ~/.config/skhd/aerospace_follow_discord_popout.sh 7 >/dev/null 2>&1 &
-    fn - 8 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 8 && ~/.config/skhd/aerospace_follow_facetime.sh 8 && ~/.config/skhd/aerospace_follow_discord_popout.sh 8 >/dev/null 2>&1 &
-    fn - 9 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 9 && ~/.config/skhd/aerospace_follow_facetime.sh 9 && ~/.config/skhd/aerospace_follow_discord_popout.sh 9 >/dev/null 2>&1 &
-    fn - 0 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace workspace 10 && ~/.config/skhd/aerospace_follow_facetime.sh 10 && ~/.config/skhd/aerospace_follow_discord_popout.sh 10 >/dev/null 2>&1 &
+    # Workspace changes must stay synchronous. The AeroSpace workspace-change hook
+    # runs the followers once the requested workspace is actually focused.
+    fn - 1 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 1
+    fn - 2 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 2
+    fn - 3 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 3
+    fn - 4 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 4
+    fn - 5 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 5
+    fn - 6 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 6
+    fn - 7 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 7
+    fn - 8 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 8
+    fn - 9 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 9
+    fn - 0 : eval "$(/opt/homebrew/bin/brew shellenv)" && aerospace workspace 10
 
     fn + shift - 1 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 1
     fn + shift - 2 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 2
@@ -574,8 +576,8 @@ in
           #!/bin/bash
           eval "$(/opt/homebrew/bin/brew shellenv)"
 
-          # skhd + exec-on-workspace-change both invoke this. Always record the latest
-          # target; the lock holder coalesces so rapid switches still follow.
+          # Workspace-change and window-detected hooks can overlap. Always record the
+          # latest target; the lock holder coalesces so rapid switches still follow.
           # Use mkdir locking — macOS has no flock(1).
           TARGET_FILE="''${TMPDIR:-/tmp}/aerospace-follow-discord.target"
           LOCK_DIR="''${TMPDIR:-/tmp}/aerospace-follow-discord.lockdir"
@@ -688,8 +690,8 @@ in
                   break
               fi
 
-              # Only real popouts (titles that do not end with " - Discord"). Never fall
-              # back to another Discord window — moving the main client snaps focus back.
+              # Follow only a secondary/popout Discord window. The main client title
+              # ends in " - Discord" and must remain on its assigned workspace.
               WINDOW_ID=$(aerospace list-windows --all --json | jq -r '
                 map(select((."app-name" | ascii_downcase) == "discord"))
                 | map(select(((."window-title" // "") | test(" - Discord$")) | not))
@@ -704,6 +706,8 @@ in
 
               # Keep whatever was focused on the destination so Discord never steals focus.
               PREV_FOCUS=$(aerospace list-windows --focused --format '%{window-id}' 2>/dev/null || true)
+              PREV_FOCUS_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' \
+                  | awk -F'|' -v id="$PREV_FOCUS" '$1 == id { print $2; exit }')
 
               WINDOW_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' | awk -F'|' -v id="$WINDOW_ID" '$1 == id { print $2; exit }')
 
@@ -742,7 +746,9 @@ in
                   continue
               fi
 
-              if [ -n "$PREV_FOCUS" ] && [ "$PREV_FOCUS" != "$WINDOW_ID" ]; then
+              if [ -n "$PREV_FOCUS" ] \
+                  && [ "$PREV_FOCUS" != "$WINDOW_ID" ] \
+                  && [ "$PREV_FOCUS_WORKSPACE" = "$CURRENT_WORKSPACE" ]; then
                   aerospace focus --window-id "$PREV_FOCUS" 2>/dev/null || true
               fi
 
@@ -757,7 +763,7 @@ in
         executable = true;
         text = ''
           #!/bin/bash
-          eval $(/opt/homebrew/bin/brew shellenv)
+          eval "$(/opt/homebrew/bin/brew shellenv)"
 
           HIDE_STATE="''${TMPDIR:-/tmp}/aerospace-follow-hidden"
           HIDDEN_WS="hidden"
@@ -767,7 +773,10 @@ in
               exit 0
           fi
 
-          CURRENT_WORKSPACE="''${1:-$(aerospace list-workspaces --focused)}"
+          # Workspace-change hooks can finish out of order during rapid switching.
+          # Debounce, then use AeroSpace's current workspace as the authority.
+          sleep 0.08
+          CURRENT_WORKSPACE=$(aerospace list-workspaces --focused 2>/dev/null || true)
           if [ -z "$CURRENT_WORKSPACE" ] || [ "$CURRENT_WORKSPACE" = "$HIDDEN_WS" ]; then
               exit 0
           fi
@@ -778,12 +787,28 @@ in
               exit 0
           fi
 
+          PREV_FOCUS=$(aerospace list-windows --focused --format '%{window-id}' 2>/dev/null || true)
+          PREV_FOCUS_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' \
+              | awk -F'|' -v id="$PREV_FOCUS" '$1 == id { print $2; exit }')
+
           echo "$WINDOW_IDS" | while read -r id; do
               if [ -n "$id" ]; then
+                  WINDOW_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' \
+                      | awk -F'|' -v window_id="$id" '$1 == window_id { print $2; exit }')
+                  if [ "$WINDOW_WORKSPACE" != "$CURRENT_WORKSPACE" ]; then
+                      aerospace move-node-to-workspace --window-id "$id" "$CURRENT_WORKSPACE"
+                  fi
                   aerospace layout --window-id "$id" floating
-                  aerospace move-node-to-workspace --window-id "$id" "$CURRENT_WORKSPACE"
               fi
           done
+
+          FOCUSED_NOW=$(aerospace list-workspaces --focused 2>/dev/null || true)
+          if [ "$FOCUSED_NOW" != "$CURRENT_WORKSPACE" ]; then
+              aerospace workspace "$CURRENT_WORKSPACE"
+          fi
+          if [ -n "$PREV_FOCUS" ] && [ "$PREV_FOCUS_WORKSPACE" = "$CURRENT_WORKSPACE" ]; then
+              aerospace focus --window-id "$PREV_FOCUS" 2>/dev/null || true
+          fi
         '';
       };
 
