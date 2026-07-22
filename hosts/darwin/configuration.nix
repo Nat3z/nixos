@@ -103,7 +103,7 @@ in
       # figma.enable = false;
       # finetune.enable = false;
       # kicad.enable = true;
-      extraCasks = [ "tailscale-app" "obs" ];
+      extraCasks = [ "tailscale-app" "obs" "cmux" ];
     };
   };
 
