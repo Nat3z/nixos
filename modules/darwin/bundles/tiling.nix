@@ -148,7 +148,7 @@ let
   aerospaceSkhdConfig = ''
     # -------- AeroSpace shortcuts --------
 
-    # The wrapper coalesces concurrent SKHD command processes so the newest key wins.
+    # Switch immediately; the wrapper moves follow windows off the hot path.
     fn - 1 : ~/.config/skhd/aerospace_switch_workspace.sh 1
     fn - 2 : ~/.config/skhd/aerospace_switch_workspace.sh 2
     fn - 3 : ~/.config/skhd/aerospace_switch_workspace.sh 3
@@ -585,7 +585,6 @@ in
         executable = true;
         text = ''
           #!/bin/bash
-          eval "$(/opt/homebrew/bin/brew shellenv)"
 
           REQUESTED="''${1:-}"
           [ -n "$REQUESTED" ] || exit 0
@@ -595,27 +594,26 @@ in
           printf '%s\n' "$REQUESTED" > "$TARGET_TMP" || exit 0
           mv -f "$TARGET_TMP" "$TARGET_FILE" || exit 0
 
-          cleanup_target() {
+          # Avoid brew shellenv startup and the old 30 ms debounce on the critical path.
+          /opt/homebrew/bin/aerospace workspace "$REQUESTED" 2>/dev/null || exit 0
+
+          # Following auxiliary windows can involve several AeroSpace queries and
+          # AppleScript. Run it after the visible switch so SKHD is immediately ready
+          # for another keypress. Each stage checks that this is still the newest switch.
+          (
+              ~/.config/skhd/aerospace_follow_facetime.sh "$REQUESTED"
+
+              LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
+              [ "$LATEST" = "$REQUESTED" ] || exit 0
+              ~/.config/skhd/aerospace_follow_discord_popout.sh "$REQUESTED"
+
+              LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
+              [ "$LATEST" = "$REQUESTED" ] || exit 0
+              /opt/homebrew/bin/aerospace workspace "$REQUESTED" 2>/dev/null || true
+
               LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
               [ "$LATEST" != "$REQUESTED" ] || rm -f "$TARGET_FILE"
-          }
-          trap cleanup_target EXIT
-
-          # Let a burst of keypresses publish before starting work; only the newest wins.
-          sleep 0.03
-          LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
-          [ "$LATEST" = "$REQUESTED" ] || exit 0
-
-          aerospace workspace "$REQUESTED" 2>/dev/null || true
-          ~/.config/skhd/aerospace_follow_facetime.sh "$REQUESTED"
-
-          LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
-          [ "$LATEST" = "$REQUESTED" ] || exit 0
-          ~/.config/skhd/aerospace_follow_discord_popout.sh "$REQUESTED"
-
-          LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
-          [ "$LATEST" = "$REQUESTED" ] || exit 0
-          aerospace workspace "$REQUESTED" 2>/dev/null || true
+          ) >/dev/null 2>&1 &
         '';
       };
 
