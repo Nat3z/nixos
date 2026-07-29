@@ -154,9 +154,9 @@ let
     fn - 4 : ~/.config/skhd/aerospace_switch_workspace.sh 4
     fn - 5 : ~/.config/skhd/aerospace_switch_workspace.sh 5
     fn - 6 : ~/.config/skhd/aerospace_switch_workspace.sh 6
-    fn - 7 : ~/.config/skhd/aerospace_switch_workspace.sh 7
-    fn - 8 : ~/.config/skhd/aerospace_switch_workspace.sh 8
-    fn - 9 : ~/.config/skhd/aerospace_switch_workspace.sh 9
+    fn - c : ~/.config/skhd/aerospace_switch_workspace.sh 7
+    fn - v : ~/.config/skhd/aerospace_switch_workspace.sh 8
+    fn - f : ~/.config/skhd/aerospace_switch_workspace.sh 9
     fn - 0 : ~/.config/skhd/aerospace_switch_workspace.sh 10
 
     fn + shift - 1 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 1
@@ -165,9 +165,9 @@ let
     fn + shift - 4 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 4
     fn + shift - 5 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 5
     fn + shift - 6 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 6
-    fn + shift - 7 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 7
-    fn + shift - 8 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 8
-    fn + shift - 9 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 9
+    fn + shift - c : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 7
+    fn + shift - v : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 8
+    fn + shift - f : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 9
     fn + shift - 0 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 10
 
     fn + shift - k : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move up
@@ -180,7 +180,6 @@ let
     fn - l : eval $(/opt/homebrew/bin/brew shellenv) && aerospace focus right
     fn - k : eval $(/opt/homebrew/bin/brew shellenv) && aerospace focus up
 
-    fn - f : eval $(/opt/homebrew/bin/brew shellenv) && aerospace layout floating tiling
     fn - g : ~/.config/skhd/aerospace_reorganizer.sh
 
     # AeroSpace workspaces are dynamic; there is no empty-space cleanup equivalent.
