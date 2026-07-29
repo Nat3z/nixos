@@ -107,9 +107,9 @@ let
     fn - 4 : yabai -m space --focus 4
     fn - 5 : yabai -m space --focus 5
     fn - 6 : yabai -m space --focus 6
-    fn - 7 : yabai -m space --focus 7
-    fn - 8 : yabai -m space --focus 8
-    fn - 9 : yabai -m space --focus 9
+    fn - c : yabai -m space --focus 7
+    fn - v : yabai -m space --focus 8
+    fn - f : yabai -m space --focus 9
     fn - 0 : yabai -m space --focus 10
 
     fn + shift - 1 : yabai -m window --space 1
@@ -133,7 +133,6 @@ let
     fn - l : yabai -m window --focus east
     fn - k : yabai -m window --focus north
 
-    fn - f : if [ "$(yabai -m query --spaces --space | jq -r '.type')" = "bsp" ]; then yabai -m space --layout float; else yabai -m space --layout bsp; fi
     fn - g : ~/.config/skhd/reorganizer.sh
 
     fn + shift - d : /bin/sh -c 'eval $(/opt/homebrew/bin/brew shellenv) && yabai -m query --spaces --display | jq -re "map(select(.\"is-native-fullscreen\" == false)) | length > 1" && yabai -m query --spaces | jq -re "map(select(.\"windows\" == [] and .\"has-focus\" == false).index) | reverse | .[]" | xargs -I % sh -c "yabai -m space % --destroy"'
@@ -317,8 +316,8 @@ in
           cp ${aerospaceToml} "$HOME/.config/aerospace/aerospace.toml"
           chmod u+w "$HOME/.config/aerospace/aerospace.toml"
           if [ -f "$state_file" ] && [ "$(cat "$state_file")" = "false" ]; then
-            /usr/bin/sed -i '''' '/^\[focus-follows-mouse\]/,/^\[/{s/^enabled = true/enabled = false/;}' "$HOME/.config/aerospace/aerospace.toml"
-            /usr/bin/sed -i '''' -E 's/^(focus-follows-mouse\.enabled[[:space:]]*=[[:space:]]*)true/\1false/' "$HOME/.config/aerospace/aerospace.toml"
+            /usr/bin/sed -i "" '/^\[focus-follows-mouse\]/,/^\[/{s/^enabled = true/enabled = false/;}' "$HOME/.config/aerospace/aerospace.toml"
+            /usr/bin/sed -i "" -E 's/^(focus-follows-mouse\.enabled[[:space:]]*=[[:space:]]*)true/\1false/' "$HOME/.config/aerospace/aerospace.toml"
           fi
         ''
       );
@@ -345,12 +344,12 @@ in
           }
 
           if is_enabled; then
-              /usr/bin/sed -i '''' -E 's/^(focus-follows-mouse\.enabled[[:space:]]*=[[:space:]]*)true/\1false/' "$CONFIG"
-              /usr/bin/sed -i '''' '/^\[focus-follows-mouse\]/,/^\[/{s/^enabled = true/enabled = false/;}' "$CONFIG"
+              /usr/bin/sed -i "" -E 's/^(focus-follows-mouse\.enabled[[:space:]]*=[[:space:]]*)true/\1false/' "$CONFIG"
+              /usr/bin/sed -i "" '/^\[focus-follows-mouse\]/,/^\[/{s/^enabled = true/enabled = false/;}' "$CONFIG"
               echo false > "$STATE"
           else
-              /usr/bin/sed -i '''' -E 's/^(focus-follows-mouse\.enabled[[:space:]]*=[[:space:]]*)false/\1true/' "$CONFIG"
-              /usr/bin/sed -i '''' '/^\[focus-follows-mouse\]/,/^\[/{s/^enabled = false/enabled = true/;}' "$CONFIG"
+              /usr/bin/sed -i "" -E 's/^(focus-follows-mouse\.enabled[[:space:]]*=[[:space:]]*)false/\1true/' "$CONFIG"
+              /usr/bin/sed -i "" '/^\[focus-follows-mouse\]/,/^\[/{s/^enabled = false/enabled = true/;}' "$CONFIG"
               if ! grep -qE '^focus-follows-mouse\.enabled[[:space:]]*=' "$CONFIG" \
                   && ! /usr/bin/awk '/^\[focus-follows-mouse\]/{found=1} END{exit !found}' "$CONFIG"; then
                   printf '\nfocus-follows-mouse.enabled = true\n' >> "$CONFIG"
@@ -595,7 +594,7 @@ in
           mv -f "$TARGET_TMP" "$TARGET_FILE" || exit 0
 
           # Avoid brew shellenv startup and the old 30 ms debounce on the critical path.
-          /opt/homebrew/bin/aerospace workspace "$REQUESTED" 2>/dev/null || exit 0
+          aerospace workspace "$REQUESTED" 2>/dev/null || exit 0
 
           # Following auxiliary windows can involve several AeroSpace queries and
           # AppleScript. Run it after the visible switch so SKHD is immediately ready
@@ -609,7 +608,7 @@ in
 
               LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
               [ "$LATEST" = "$REQUESTED" ] || exit 0
-              /opt/homebrew/bin/aerospace workspace "$REQUESTED" 2>/dev/null || true
+              aerospace workspace "$REQUESTED" 2>/dev/null || true
 
               LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
               [ "$LATEST" != "$REQUESTED" ] || rm -f "$TARGET_FILE"
