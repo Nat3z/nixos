@@ -62,6 +62,7 @@ in
 
     # Toolchains / AI
     buildchains.enable = true;
+    buildchains.bun.enable = false; # bun is installed via its own installer, see ~/extra.zshrc
     ai.enable = true;
     terminal-shortcuts.enable = true;
 
