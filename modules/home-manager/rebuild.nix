@@ -2,7 +2,6 @@
   config,
   pkgs,
   flakeName,
-  lib,
   ...
 }:
 let
@@ -64,11 +63,6 @@ in
       else
         git -C ${nixConfigDir} commit -m "chore(rebuild): switch ${flakeName} at $(date)" || true
       fi
-
-      ${lib.optionalString pkgs.stdenv.isDarwin ''
-        echo "Restarting skhd.."
-        launchctl kickstart -k "gui/$UID/org.nixos.skhd"
-      ''}
     '')
 
     (pkgs.writeShellScriptBin "update" ''

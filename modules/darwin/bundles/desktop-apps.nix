@@ -141,7 +141,6 @@ in
         ++ optional (use "sikarugir") "sikarugir"
         ++ optional (use "cursorcerer") "cursorcerer"
         ++ optional (use "vibeproxy") "vibeproxy"
-        ++ optional (use "music") "musescore"
         ++ extraCasks;
 
     };

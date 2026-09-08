@@ -11,8 +11,7 @@ with lib;
 let
   cfg = config.darwin.tiling;
   enabled = cfg.enable;
-  use = name:
-    (cfg.enable && cfg.${name}.enable);
+  use = name: (cfg.enable && cfg.${name}.enable);
 
   aerospaceConfigPath = "/Users/${username}/.config/aerospace/aerospace.toml";
 
@@ -25,8 +24,8 @@ let
     };
   });
 
-  # Shared AeroSpace settings. Written to a user-writable path so fn-t can toggle
-  # focus-follows-mouse (yabai's autoraise equivalent) without editing the nix store.
+  # Shared AeroSpace settings. Written to a user-writable path so the runtime
+  # focus-follows-mouse helper can update it without editing the nix store.
   aerospaceSettings = {
     config-version = 2;
 
@@ -42,7 +41,9 @@ let
     default-root-container-layout = "tiles";
     default-root-container-orientation = "auto";
 
-    on-focus-changed = [ ];
+    on-focus-changed = [
+      "exec-and-forget ~/.config/skhd/aerospace_guard_cap_focus.sh"
+    ];
     # Keep focus-follows-mouse from immediately returning to the previous monitor
     # after a keyboard-driven workspace switch.
     on-focused-monitor-changed = [
@@ -69,8 +70,19 @@ let
         run = "layout floating";
       }
       {
+        "if".app-id = "com.apple.ScreenContinuity";
+        run = "layout floating";
+      }
+      {
         "if".app-id = "com.wulkano.kap";
         run = "layout floating";
+      }
+      {
+        "if".app-id = "so.cap.desktop";
+        run = [
+          "layout floating"
+          "exec-and-forget sleep 0.2; eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_cap.sh"
+        ];
       }
       {
         "if".app-name-regex-substring = "^[Dd]iscord$";
@@ -137,7 +149,7 @@ let
 
     fn + shift - d : /bin/sh -c 'eval $(/opt/homebrew/bin/brew shellenv) && yabai -m query --spaces --display | jq -re "map(select(.\"is-native-fullscreen\" == false)) | length > 1" && yabai -m query --spaces | jq -re "map(select(.\"windows\" == [] and .\"has-focus\" == false).index) | reverse | .[]" | xargs -I % sh -c "yabai -m space % --destroy"'
 
-    fn - t : eval $(/opt/homebrew/bin/brew shellenv) && if [ "$(yabai -m config focus_follows_mouse)" = "autoraise" ]; then yabai -m config focus_follows_mouse off; else yabai -m config focus_follows_mouse autoraise; fi
+    fn - y : eval $(/opt/homebrew/bin/brew shellenv) && if [ "$(yabai -m config focus_follows_mouse)" = "autoraise" ]; then yabai -m config focus_follows_mouse off; else yabai -m config focus_follows_mouse autoraise; fi
 
     # fn - t : osascript -e 'tell application "System Events" to keystroke "t" using {command down, option down, shift down, control down}' && echo 'tapped'
 
@@ -185,8 +197,13 @@ let
     # AeroSpace workspaces are dynamic; there is no empty-space cleanup equivalent.
     fn + shift - d : true
 
-    # Toggle focus-follows-mouse (yabai autoraise equivalent).
-    fn - t : ~/.config/skhd/aerospace_toggle_ffm.sh
+    # Toggle iPhone Mirroring on the focused workspace.
+    fn - t : ${
+      config.home-manager.users.${username}.home.file.".config/skhd/aerospace_toggle_iphone_mirroring.sh".source
+    }
+
+    # Toggle automatic focus without colliding with iPhone Mirroring.
+    fn - y : ~/.config/skhd/aerospace_toggle_ffm.sh
 
     fn - r : ~/.config/skhd/aerospace_focus_messages.sh
 
@@ -256,6 +273,11 @@ in
       );
     };
 
+    # Re-read /etc/skhdrc after nix-darwin swaps its symlink target.
+    system.activationScripts.postActivation.text = mkIf (use "skhd") (mkAfter ''
+      skhd_uid=$(/usr/bin/id -u ${escapeShellArg username})
+      /usr/bin/pkill -USR1 -u "$skhd_uid" -x skhd >/dev/null 2>&1 || true
+    '');
 
     services.yabai = mkIf (use "yabai") {
       enable = true;
@@ -283,23 +305,25 @@ in
       settings = aerospaceSettings;
     };
 
-    # Prefer a user-writable config so fn-t can toggle focus-follows-mouse and reload.
+    # Prefer a user-writable config so runtime helpers can update it and reload.
     # Seed the file here in case home-manager activation has not run yet.
     launchd.user.agents.aerospace = mkIf (use "aerospace") {
-      command = mkForce (pkgs.writeShellScript "aerospace-with-writable-config" ''
-        set -euo pipefail
-        mkdir -p /Users/${username}/.config/aerospace
-        if [ ! -f ${aerospaceConfigPath} ]; then
-          cp ${aerospaceToml} ${aerospaceConfigPath}
-          chmod u+w ${aerospaceConfigPath}
-        fi
-        exec ${config.services.aerospace.package}/Applications/AeroSpace.app/Contents/MacOS/AeroSpace --config-path ${aerospaceConfigPath}
-      '');
+      command = mkForce (
+        pkgs.writeShellScript "aerospace-with-writable-config" ''
+          set -euo pipefail
+          mkdir -p /Users/${username}/.config/aerospace
+          if [ ! -f ${aerospaceConfigPath} ]; then
+            cp ${aerospaceToml} ${aerospaceConfigPath}
+            chmod u+w ${aerospaceConfigPath}
+          fi
+          exec ${config.services.aerospace.package}/Applications/AeroSpace.app/Contents/MacOS/AeroSpace --config-path ${aerospaceConfigPath}
+        ''
+      );
     };
 
     # Submodule so we get home-manager's lib (lib.hm), not nix-darwin's.
     home-manager.users.${username} = { lib, ... }: {
-      # Writable copy (not a store symlink) so fn-t can toggle focus-follows-mouse.
+      # Writable copy (not a store symlink) for runtime configuration helpers.
       home.activation.aerospaceWritableConfig = mkIf (use "aerospace") (
         lib.hm.dag.entryAfter [ "writeBoundary" ] ''
           mkdir -p "$HOME/.config/aerospace"
@@ -357,6 +381,143 @@ in
           fi
 
           aerospace reload-config --no-gui
+        '';
+      };
+
+      home.file.".config/skhd/aerospace_guard_cap_focus.sh" = mkIf (use "aerospace") {
+        force = true;
+        executable = true;
+        text = ''
+          #!/bin/bash
+          # Let Cap receive deliberate clicks, but undo same-workspace focus-follows-mouse raises.
+          eval "$(/opt/homebrew/bin/brew shellenv)"
+
+          PREVIOUS_FILE="''${TMPDIR:-/tmp}/aerospace-cap-previous-focus"
+          WINDOW_ID="''${AEROSPACE_WINDOW_ID:-}"
+          [ -n "$WINDOW_ID" ] || exit 0
+
+          APP_ID=$(aerospace list-windows --all --format '%{window-id}|%{app-bundle-id}' 2>/dev/null \
+              | awk -F'|' -v id="$WINDOW_ID" '$1 == id { print $2; exit }')
+
+          if [ "$APP_ID" != "so.cap.desktop" ]; then
+              printf '%s\n' "$WINDOW_ID" > "$PREVIOUS_FILE"
+              exit 0
+          fi
+
+          CLICKING=$(/usr/bin/osascript -l JavaScript <<'JXA' 2>/dev/null || true
+          ObjC.import("ApplicationServices");
+          const source = $.kCGEventSourceStateCombinedSessionState;
+          ($.CGEventSourceButtonState(source, 0) || $.CGEventSourceButtonState(source, 1)) ? "true" : "false";
+          JXA
+          )
+          [ "$CLICKING" = "true" ] && exit 0
+
+          PREVIOUS=$(cat "$PREVIOUS_FILE" 2>/dev/null || true)
+          [ -n "$PREVIOUS" ] || exit 0
+
+          CURRENT_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' 2>/dev/null \
+              | awk -F'|' -v id="$WINDOW_ID" '$1 == id { print $2; exit }')
+          PREVIOUS_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' 2>/dev/null \
+              | awk -F'|' -v id="$PREVIOUS" '$1 == id { print $2; exit }')
+          [ -n "$CURRENT_WORKSPACE" ] && [ "$PREVIOUS_WORKSPACE" = "$CURRENT_WORKSPACE" ] || exit 0
+
+          aerospace focus --window-id "$PREVIOUS" 2>/dev/null || true
+        '';
+      };
+
+      home.file.".config/skhd/aerospace_toggle_iphone_mirroring.sh" = mkIf (use "aerospace") {
+        force = true;
+        executable = true;
+        text = ''
+          #!/bin/bash
+          # Hide iPhone Mirroring when focused; otherwise reveal it on this workspace.
+          eval $(/opt/homebrew/bin/brew shellenv)
+
+          APP_ID="com.apple.ScreenContinuity"
+
+          FRONTMOST=$(/usr/bin/osascript <<'APPLESCRIPT' 2>/dev/null || true
+          tell application "System Events"
+              set matches to every application process whose bundle identifier is "com.apple.ScreenContinuity"
+              if (count of matches) is 0 then return false
+              set appProcess to item 1 of matches
+              return (visible of appProcess) and (frontmost of appProcess)
+          end tell
+          APPLESCRIPT
+          )
+
+          if [ "$FRONTMOST" = "true" ]; then
+              /usr/bin/osascript <<'APPLESCRIPT' >/dev/null 2>&1
+          tell application "System Events" to set visible of first application process whose bundle identifier is "com.apple.ScreenContinuity" to false
+          APPLESCRIPT
+              exit 0
+          fi
+
+          CURRENT_WORKSPACE=$(aerospace list-workspaces --focused 2>/dev/null || true)
+          MONITOR_NAME=$(aerospace list-monitors --focused --format '%{monitor-name}' 2>/dev/null || true)
+          [ -n "$CURRENT_WORKSPACE" ] || exit 1
+
+          /usr/bin/open -g -b "$APP_ID"
+          /usr/bin/osascript <<'APPLESCRIPT' >/dev/null 2>&1 || true
+          tell application "System Events"
+              set matches to every application process whose bundle identifier is "com.apple.ScreenContinuity"
+              if (count of matches) > 0 then
+                  set appProcess to item 1 of matches
+                  set visible of appProcess to true
+                  repeat with appWindow in windows of appProcess
+                      try
+                          set value of attribute "AXMinimized" of appWindow to false
+                      end try
+                  end repeat
+              end if
+          end tell
+          APPLESCRIPT
+
+          WINDOW_ID=""
+          for _ in {1..50}; do
+              WINDOW_ID=$(aerospace list-windows --all --format '%{window-id}|%{app-bundle-id}' 2>/dev/null \
+                  | awk -F'|' -v app="$APP_ID" '$2 == app { print $1; exit }')
+              [ -n "$WINDOW_ID" ] && break
+              sleep 0.1
+          done
+
+          if [ -z "$WINDOW_ID" ]; then
+              /usr/bin/osascript -e 'tell application "iPhone Mirroring" to activate' >/dev/null 2>&1 || true
+              exit 1
+          fi
+
+          aerospace move-node-to-workspace --window-id "$WINDOW_ID" "$CURRENT_WORKSPACE" 2>/dev/null || true
+          aerospace layout --window-id "$WINDOW_ID" floating 2>/dev/null || true
+          aerospace workspace "$CURRENT_WORKSPACE" 2>/dev/null || true
+
+          /usr/bin/osascript -l JavaScript - "$APP_ID" "$MONITOR_NAME" <<'JXA' >/dev/null 2>&1 || true
+          ObjC.import("AppKit");
+
+          function run(argv) {
+              const appId = argv[0];
+              const monitorName = argv[1];
+              const systemEvents = Application("System Events");
+              const processes = systemEvents.applicationProcesses.whose({ bundleIdentifier: appId })();
+              if (processes.length === 0) return;
+
+              const windows = processes[0].windows();
+              if (windows.length === 0) return;
+
+              const screens = $.NSScreen.screens.js;
+              const screen = screens.find(candidate => candidate.localizedName.js === monitorName) || screens[0];
+              const frame = screen.visibleFrame;
+              const mainScreenHeight = Number(screens[0].frame.size.height);
+              const size = windows[0].size();
+              const x = Number(frame.origin.x) + (Number(frame.size.width) - size[0]) / 2;
+              const top = mainScreenHeight - Number(frame.origin.y) - Number(frame.size.height);
+              const y = top + (Number(frame.size.height) - size[1]) / 2;
+
+              windows[0].position = [Math.round(x), Math.round(y)];
+          }
+          JXA
+
+          aerospace focus --window-id "$WINDOW_ID" 2>/dev/null || true
+          /usr/bin/osascript -e 'tell application "System Events" to set frontmost of first application process whose bundle identifier is "com.apple.ScreenContinuity" to true' >/dev/null 2>&1 || true
+          aerospace move-mouse monitor-force-center 2>/dev/null || true
         '';
       };
 
@@ -512,70 +673,81 @@ in
         executable = true;
         text = ''
           #!/bin/bash
-          FRAME_FILE="''${TMPDIR:-/tmp}/discord-popout-frame"
-          LAST_FRAME=""
+          FRAME_FILE="/Users/${username}/Library/Caches/aerospace-discord-popout-frame"
+          SWITCH_TARGET_FILE="/Users/${username}/Library/Caches/aerospace-switch-workspace.target"
+          LAST_FRAME=$(cat "$FRAME_FILE" 2>/dev/null || true)
 
           while true; do
-              FRAME=$(/usr/bin/osascript 2>/dev/null <<'APPLESCRIPT' || true
-          tell application "Finder" to set screenBounds to bounds of window of desktop
-          set screenW to item 3 of screenBounds
-          set screenH to item 4 of screenBounds
-          tell application "System Events"
-            if not (exists process "Discord") then return ""
-            tell process "Discord"
-              repeat with w in windows
-                if name of w does not end with " - Discord" then
-                  set p to position of w
-                  set s to size of w
-                  return (item 1 of p as text) & "," & (item 2 of p as text) & "," & (item 1 of s as text) & "," & (item 2 of s as text) & "," & (screenW as text) & "," & (screenH as text)
-                end if
-              end repeat
-            end tell
-          end tell
-          APPLESCRIPT
-              )
+              WINDOW_ID=$(/run/current-system/sw/bin/aerospace list-windows --all --json 2>/dev/null \
+                  | /run/current-system/sw/bin/jq -r '
+                    map(select((."app-name" | ascii_downcase) == "discord"))
+                    | map(select(((."window-title" // "") | test(" - Discord$")) | not))
+                    | .[0]."window-id" // empty
+                  ')
 
-              if echo "$FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+,[0-9]+,[0-9]+$'; then
-                  IFS=, read -r X Y W H SW SH <<< "$FRAME"
-                  if [ "$X" -lt $((SW - 80)) ] && [ "$Y" -lt $((SH - 80)) ]; then
-                      GOOD_FRAME="$X,$Y,$W,$H"
-                      if [ "$GOOD_FRAME" != "$LAST_FRAME" ]; then
-                          printf '%s\n' "$GOOD_FRAME" > "$FRAME_FILE"
-                          LAST_FRAME="$GOOD_FRAME"
-                      fi
+              SAMPLE=$(/usr/bin/osascript -l JavaScript - "$WINDOW_ID" <<'JXA' 2>/dev/null || true
+          ObjC.import("ApplicationServices");
+          ObjC.import("CoreGraphics");
+
+          function run(argv) {
+            if (argv.length === 0 || argv[0] === "") return "";
+            const windowId = Number(argv[0]);
+            const windowList = ObjC.castRefToObject(
+              $.CGWindowListCopyWindowInfo($.kCGWindowListOptionAll, $.kCGNullWindowID)
+            );
+
+            for (let index = 0; index < windowList.count; index++) {
+              const info = ObjC.deepUnwrap(windowList.objectAtIndex(index));
+              if (Number(info.kCGWindowNumber) !== windowId) continue;
+              const bounds = info.kCGWindowBounds;
+              const dragAge = Number(
+                $.CGEventSourceSecondsSinceLastEventType($.kCGEventSourceStateCombinedSessionState, 6)
+              );
+              return `''${bounds.X},''${bounds.Y},''${bounds.Width},''${bounds.Height}|''${dragAge}`;
+            }
+            return "";
+          }
+          JXA
+              )
+              FRAME="''${SAMPLE%%|*}"
+              DRAG_AGE="''${SAMPLE#*|}"
+
+              SWITCHING=false
+              if [ -f "$SWITCH_TARGET_FILE" ]; then
+                  SWITCH_AGE=$(( $(date +%s) - $(stat -f %m "$SWITCH_TARGET_FILE" 2>/dev/null || echo 0) ))
+                  [ "$SWITCH_AGE" -le 10 ] && SWITCHING=true
+              fi
+
+              # A recent drag is the only event allowed to redefine the pinned frame.
+              # The switch target exists before AeroSpace exposes transient coordinates.
+              if [ "$SWITCHING" = false ] \
+                  && echo "$FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+$' \
+                  && [ "$FRAME" != "$LAST_FRAME" ] \
+                  && echo "$DRAG_AGE" | awk '$1 >= 0 && $1 <= 5 { found=1 } END { exit !found }'; then
+                  FRAME_TMP="$FRAME_FILE.$$.$RANDOM"
+                  if printf '%s\n' "$FRAME" > "$FRAME_TMP" && mv -f "$FRAME_TMP" "$FRAME_FILE"; then
+                      LAST_FRAME="$FRAME"
                   fi
               fi
 
-              sleep 0.15
+              sleep 0.1
           done
         '';
       };
 
-      home.file."Library/LaunchAgents/com.user.discord-popout-frame-watcher.plist" = mkIf (use "aerospace") {
-        force = true;
-        text = ''
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>Label</key>
-            <string>com.user.discord-popout-frame-watcher</string>
-            <key>ProgramArguments</key>
-            <array>
-              <string>/bin/bash</string>
-              <string>/Users/${username}/.config/skhd/aerospace_watch_discord_popout_frame.sh</string>
-            </array>
-            <key>RunAtLoad</key>
-            <true/>
-            <key>KeepAlive</key>
-            <true/>
-            <key>StandardOutPath</key>
-            <string>/Users/${username}/Library/Logs/discord-popout-frame-watcher.log</string>
-            <key>StandardErrorPath</key>
-            <string>/Users/${username}/Library/Logs/discord-popout-frame-watcher.err</string>
-          </dict>
-          </plist>
-        '';
+      launchd.agents.discord-popout-frame-watcher = mkIf (use "aerospace") {
+        enable = true;
+        config = {
+          ProgramArguments = [
+            "/bin/bash"
+            "${config.home-manager.users.${username}.home.file.".config/skhd/aerospace_watch_discord_popout_frame.sh".source
+            }"
+          ];
+          RunAtLoad = true;
+          KeepAlive = true;
+          StandardOutPath = "/Users/${username}/Library/Logs/discord-popout-frame-watcher.log";
+          StandardErrorPath = "/Users/${username}/Library/Logs/discord-popout-frame-watcher.err";
+        };
       };
 
       home.file.".config/skhd/aerospace_switch_workspace.sh" = mkIf (use "aerospace") {
@@ -587,7 +759,7 @@ in
           REQUESTED="''${1:-}"
           [ -n "$REQUESTED" ] || exit 0
 
-          TARGET_FILE="''${TMPDIR:-/tmp}/aerospace-switch-workspace.target"
+          TARGET_FILE="/Users/${username}/Library/Caches/aerospace-switch-workspace.target"
           TARGET_TMP="$TARGET_FILE.$$.$RANDOM"
           printf '%s\n' "$REQUESTED" > "$TARGET_TMP" || exit 0
           mv -f "$TARGET_TMP" "$TARGET_FILE" || exit 0
@@ -603,6 +775,10 @@ in
 
               LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
               [ "$LATEST" = "$REQUESTED" ] || exit 0
+              ~/.config/skhd/aerospace_follow_cap.sh "$REQUESTED"
+
+              LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
+              [ "$LATEST" = "$REQUESTED" ] || exit 0
               ~/.config/skhd/aerospace_follow_discord_popout.sh "$REQUESTED"
 
               LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
@@ -612,6 +788,54 @@ in
               LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
               [ "$LATEST" != "$REQUESTED" ] || rm -f "$TARGET_FILE"
           ) >/dev/null 2>&1 &
+        '';
+      };
+
+      home.file.".config/skhd/aerospace_follow_cap.sh" = mkIf (use "aerospace") {
+        force = true;
+        executable = true;
+        text = ''
+          #!/bin/bash
+          eval "$(/opt/homebrew/bin/brew shellenv)"
+
+          HIDDEN_WS="hidden"
+          SWITCH_TARGET_FILE="/Users/${username}/Library/Caches/aerospace-switch-workspace.target"
+
+          CURRENT_WORKSPACE="''${1:-$(aerospace list-workspaces --focused)}"
+          sleep 0.08
+          SWITCH_TARGET=$(cat "$SWITCH_TARGET_FILE" 2>/dev/null || true)
+          if [ -n "$SWITCH_TARGET" ]; then
+              CURRENT_WORKSPACE="$SWITCH_TARGET"
+          fi
+          if [ -z "$CURRENT_WORKSPACE" ] || [ "$CURRENT_WORKSPACE" = "$HIDDEN_WS" ]; then
+              exit 0
+          fi
+
+          WINDOW_IDS=$(aerospace list-windows --all --format '%{window-id}|%{app-bundle-id}' \
+              | awk -F'|' '$2 == "so.cap.desktop" { print $1 }')
+          [ -n "$WINDOW_IDS" ] || exit 0
+
+          PREV_FOCUS=$(aerospace list-windows --focused --format '%{window-id}' 2>/dev/null || true)
+          PREV_FOCUS_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' \
+              | awk -F'|' -v id="$PREV_FOCUS" '$1 == id { print $2; exit }')
+
+          echo "$WINDOW_IDS" | while read -r id; do
+              [ -n "$id" ] || continue
+              WINDOW_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' \
+                  | awk -F'|' -v window_id="$id" '$1 == window_id { print $2; exit }')
+              if [ "$WINDOW_WORKSPACE" != "$CURRENT_WORKSPACE" ]; then
+                  aerospace move-node-to-workspace --window-id "$id" "$CURRENT_WORKSPACE"
+              fi
+              aerospace layout --window-id "$id" floating
+          done
+
+          FOCUSED_NOW=$(aerospace list-workspaces --focused 2>/dev/null || true)
+          if [ "$FOCUSED_NOW" != "$CURRENT_WORKSPACE" ]; then
+              aerospace workspace "$CURRENT_WORKSPACE"
+          fi
+          if [ -n "$PREV_FOCUS" ] && [ "$PREV_FOCUS_WORKSPACE" = "$CURRENT_WORKSPACE" ]; then
+              aerospace focus --window-id "$PREV_FOCUS" 2>/dev/null || true
+          fi
         '';
       };
 
@@ -625,13 +849,15 @@ in
           # SKHD switches and window-detected hooks can overlap. Always record the latest
           # target; the lock holder coalesces so rapid switches still follow.
           # Use mkdir locking — macOS has no flock(1).
-          TARGET_FILE="''${TMPDIR:-/tmp}/aerospace-follow-discord.target"
-          LOCK_DIR="''${TMPDIR:-/tmp}/aerospace-follow-discord.lockdir"
-          FRAME_FILE="''${TMPDIR:-/tmp}/discord-popout-frame"
-          SWITCH_TARGET_FILE="''${TMPDIR:-/tmp}/aerospace-switch-workspace.target"
+          TARGET_FILE="/Users/${username}/Library/Caches/aerospace-follow-discord.target"
+          LOCK_DIR="/Users/${username}/Library/Caches/aerospace-follow-discord.lockdir"
+          FRAME_FILE="/Users/${username}/Library/Caches/aerospace-discord-popout-frame"
+          SWITCH_TARGET_FILE="/Users/${username}/Library/Caches/aerospace-switch-workspace.target"
 
-          HIDE_STATE="''${TMPDIR:-/tmp}/aerospace-follow-hidden"
+          HIDE_STATE="/Users/${username}/Library/Caches/aerospace-follow-hidden"
           HIDDEN_WS="hidden"
+          WINDOW_DETECTED=false
+          [ "$#" -eq 0 ] && WINDOW_DETECTED=true
 
           # fn-grave hide: do not drag the popout back onto the focused workspace.
           if [ -f "$HIDE_STATE" ] && grep -q '^kind=discord$' "$HIDE_STATE" 2>/dev/null; then
@@ -724,6 +950,27 @@ in
           APPLESCRIPT
           }
 
+          hold_frame_until_settled() {
+              local X="$1" Y="$2" W="$3" H="$4"
+              /usr/bin/osascript >/dev/null 2>&1 <<APPLESCRIPT || true
+          tell application "System Events"
+            if not (exists process "Discord") then return
+            tell process "Discord"
+              repeat 20 times
+                repeat with w in windows
+                  if name of w does not end with " - Discord" then
+                    set size of w to {$W, $H}
+                    set position of w to {$X, $Y}
+                    exit repeat
+                  end if
+                end repeat
+                delay 0.15
+              end repeat
+            end tell
+          end tell
+          APPLESCRIPT
+          }
+
           while true; do
               if [ -f "$HIDE_STATE" ] && grep -q '^kind=discord$' "$HIDE_STATE" 2>/dev/null; then
                   break
@@ -762,6 +1009,8 @@ in
 
               WINDOW_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' | awk -F'|' -v id="$WINDOW_ID" '$1 == id { print $2; exit }')
 
+              # The saved frame is authoritative. AeroSpace and Discord both expose
+              # transient coordinates while a floating popout changes workspaces.
               if [ -s "$FRAME_FILE" ]; then
                   DESIRED_FRAME=$(cat "$FRAME_FILE")
               else
@@ -778,6 +1027,11 @@ in
               if echo "$DESIRED_FRAME" | grep -Eq '^[0-9-]+,[0-9-]+,[0-9]+,[0-9]+$'; then
                   IFS=, read -r X Y W H <<< "$DESIRED_FRAME"
                   restore_frame "$X" "$Y" "$W" "$H"
+                  # Discord applies its own bottom-right placement after creating an
+                  # Electron popout. Hold the saved frame until that startup settles.
+                  if [ "$WINDOW_DETECTED" = true ]; then
+                      hold_frame_until_settled "$X" "$Y" "$W" "$H"
+                  fi
               fi
 
               NEW=$(cat "$TARGET_FILE" 2>/dev/null || true)
@@ -816,9 +1070,9 @@ in
           #!/bin/bash
           eval "$(/opt/homebrew/bin/brew shellenv)"
 
-          HIDE_STATE="''${TMPDIR:-/tmp}/aerospace-follow-hidden"
+          HIDE_STATE="/Users/${username}/Library/Caches/aerospace-follow-hidden"
           HIDDEN_WS="hidden"
-          SWITCH_TARGET_FILE="''${TMPDIR:-/tmp}/aerospace-switch-workspace.target"
+          SWITCH_TARGET_FILE="/Users/${username}/Library/Caches/aerospace-switch-workspace.target"
 
           # fn-grave hide: keep FaceTime on the scratch workspace until revealed.
           if [ -f "$HIDE_STATE" ] && grep -q '^kind=facetime$' "$HIDE_STATE" 2>/dev/null; then
@@ -877,9 +1131,9 @@ in
 
           # fn-grave: park the active FaceTime / Discord popout on a scratch workspace
           # and leave it there until pressed again (follow scripts respect the state file).
-          STATE_FILE="''${TMPDIR:-/tmp}/aerospace-follow-hidden"
+          STATE_FILE="/Users/${username}/Library/Caches/aerospace-follow-hidden"
           HIDDEN_WS="hidden"
-          FRAME_FILE="''${TMPDIR:-/tmp}/discord-popout-frame"
+          FRAME_FILE="/Users/${username}/Library/Caches/aerospace-discord-popout-frame"
 
           restore_discord_frame() {
               local X="$1" Y="$2" W="$3" H="$4"

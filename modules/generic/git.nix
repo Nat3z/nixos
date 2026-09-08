@@ -44,7 +44,10 @@ in
       settings = lib.mkMerge [
         cfg.config
         (lib.mkIf cfg.signing.ssh {
-          gpg.format = "ssh"; 
+          gpg = {
+            format = "ssh";
+            ssh.allowedSignersFile = "/Users/${username}/.ssh/allowed_signers";
+          };
         })
       ];
       signing = lib.mkIf cfg.signing.enable {
