@@ -123,6 +123,8 @@ let
     fn - v : yabai -m space --focus 8
     fn - f : yabai -m space --focus 9
     fn - 0 : yabai -m space --focus 10
+    # Music gets its own space after 1-10.
+    fn - m : yabai -m space --focus 11
 
     fn + shift - 1 : yabai -m window --space 1
     fn + shift - 2 : yabai -m window --space 2
@@ -134,6 +136,7 @@ let
     fn + shift - 8 : yabai -m window --space 8
     fn + shift - 9 : yabai -m window --space 9
     fn + shift - 0 : yabai -m window --space 10
+    fn + shift - m : yabai -m window --space 11
 
     fn + shift - k : yabai -m window --warp north
     fn + shift - h : yabai -m window --warp west
@@ -170,6 +173,8 @@ let
     fn - v : ~/.config/skhd/aerospace_switch_workspace.sh 8
     fn - f : ~/.config/skhd/aerospace_switch_workspace.sh 9
     fn - 0 : ~/.config/skhd/aerospace_switch_workspace.sh 10
+    # Music gets its own named workspace.
+    fn - m : ~/.config/skhd/aerospace_switch_workspace.sh M
 
     fn + shift - 1 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 1
     fn + shift - 2 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 2
@@ -181,6 +186,7 @@ let
     fn + shift - v : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 8
     fn + shift - f : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 9
     fn + shift - 0 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 10
+    fn + shift - m : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace M
 
     fn + shift - k : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move up
     fn + shift - h : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move left
@@ -1316,8 +1322,8 @@ in
               ["Ghostty"]=3
               ["kitty"]=3
               ["Discord"]=4
-              ["Spotify"]=5
-              ["Music"]=5
+              ["Spotify"]=11
+              ["Music"]=11
               ["Google Chrome"]=5
               ["GitHub Desktop"]=5
           )
@@ -1396,8 +1402,8 @@ in
               ["Ghostty"]=3
               ["kitty"]=3
               ["Discord"]=4
-              ["Spotify"]=5
-              ["Music"]=5
+              ["Spotify"]=M
+              ["Music"]=M
               ["Google Chrome"]=5
               ["GitHub Desktop"]=5
           )
