@@ -24,6 +24,24 @@ let
     };
   });
 
+  # App name -> workspace. Drives both on-window-detected auto-moves and the
+  # fn-g reorganizer.
+  pinnedApps = {
+    "DaVinci Resolve" = "1";
+    "Zen Browser" = "1";
+    "Code" = "2";
+    "Cursor" = "2";
+    "Ghostty" = "3";
+    "kitty" = "3";
+    "Discord" = "4";
+    "Google Chrome" = "5";
+    "GitHub Desktop" = "5";
+    "Notion Calendar" = "7";
+    "Spotify" = "M";
+    "Music" = "M";
+    "ChatGPT" = "O";
+  };
+
   # Shared AeroSpace settings. Written to a user-writable path so the runtime
   # focus-follows-mouse helper can update it without editing the nix store.
   aerospaceSettings = {
@@ -84,18 +102,20 @@ let
           "exec-and-forget sleep 0.2; eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_cap.sh"
         ];
       }
-      # Pinned apps land on their fn-key workspace (no fn + shift binding needed).
+    ]
+    # Pinned apps land on their workspace as soon as they open. Discord is
+    # handled below so popouts can keep following the focused workspace.
+    ++ mapAttrsToList (app: workspace: {
+      "if".app-name-regex-substring = "^${escapeRegex app}$";
+      run = "move-node-to-workspace ${workspace}";
+    }) (removeAttrs pinnedApps [ "Discord" ])
+    ++ [
+      # Fall through so the popout follower can pull popouts back to the
+      # focused workspace; the main client (" - Discord") stays put.
       {
-        "if".app-id = "com.cron.electron";
-        run = "move-node-to-workspace 7";
-      }
-      {
-        "if".app-id = "com.apple.Music";
-        run = "move-node-to-workspace M";
-      }
-      {
-        "if".app-id = "com.openai.codex";
-        run = "move-node-to-workspace O";
+        "if".app-name-regex-substring = "^[Dd]iscord$";
+        run = "move-node-to-workspace ${pinnedApps."Discord"}";
+        check-further-callbacks = true;
       }
       {
         "if".app-name-regex-substring = "^[Dd]iscord$";
@@ -1407,19 +1427,7 @@ in
 
           # App to workspace mappings
           declare -A app_workspaces=(
-              ["DaVinci Resolve"]=1
-              ["Zen Browser"]=1
-              ["Code"]=2
-              ["Cursor"]=2
-              ["Ghostty"]=3
-              ["kitty"]=3
-              ["Discord"]=4
-              ["Spotify"]=M
-              ["Music"]=M
-              ["Notion Calendar"]=7
-              ["ChatGPT"]=O
-              ["Google Chrome"]=5
-              ["GitHub Desktop"]=5
+          ${concatStringsSep "\n" (mapAttrsToList (app: workspace: "    [${escapeShellArg app}]=${workspace}") pinnedApps)}
           )
 
           # Function to check if a window ID exists
@@ -1432,7 +1440,7 @@ in
           echo "Moving windows..."
           for app in "''${!app_workspaces[@]}"; do
               workspace="''${app_workspaces[$app]}"
-              window_ids=$(aerospace list-windows --all --format '%{window-id}|%{app-name}' | awk -F'|' -v app="$app" '$2 ~ app { print $1 }')
+              window_ids=$(aerospace list-windows --all --format '%{window-id}|%{app-name}' | awk -F'|' -v app="$app" '$2 == app { print $1 }')
 
               if [ ! -z "$window_ids" ]; then
                   echo "Processing $app -> Workspace $workspace"
