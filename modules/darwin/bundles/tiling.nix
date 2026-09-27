@@ -84,6 +84,19 @@ let
           "exec-and-forget sleep 0.2; eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_cap.sh"
         ];
       }
+      # Pinned apps land on their fn-key workspace (no fn + shift binding needed).
+      {
+        "if".app-id = "com.cron.electron";
+        run = "move-node-to-workspace 7";
+      }
+      {
+        "if".app-id = "com.apple.Music";
+        run = "move-node-to-workspace M";
+      }
+      {
+        "if".app-id = "com.openai.codex";
+        run = "move-node-to-workspace O";
+      }
       {
         "if".app-name-regex-substring = "^[Dd]iscord$";
         run = "exec-and-forget sleep 0.2; eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_discord_popout.sh";
@@ -173,8 +186,9 @@ let
     fn - v : ~/.config/skhd/aerospace_switch_workspace.sh 8
     fn - f : ~/.config/skhd/aerospace_switch_workspace.sh 9
     fn - 0 : ~/.config/skhd/aerospace_switch_workspace.sh 10
-    # Music gets its own named workspace.
+    # Music and ChatGPT get their own named workspaces.
     fn - m : ~/.config/skhd/aerospace_switch_workspace.sh M
+    fn - o : ~/.config/skhd/aerospace_switch_workspace.sh O
 
     fn + shift - 1 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 1
     fn + shift - 2 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 2
@@ -182,11 +196,9 @@ let
     fn + shift - 4 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 4
     fn + shift - 5 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 5
     fn + shift - 6 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 6
-    fn + shift - c : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 7
     fn + shift - v : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 8
     fn + shift - f : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 9
     fn + shift - 0 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 10
-    fn + shift - m : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace M
 
     fn + shift - k : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move up
     fn + shift - h : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move left
@@ -1404,6 +1416,8 @@ in
               ["Discord"]=4
               ["Spotify"]=M
               ["Music"]=M
+              ["Notion Calendar"]=7
+              ["ChatGPT"]=O
               ["Google Chrome"]=5
               ["GitHub Desktop"]=5
           )
