@@ -143,6 +143,17 @@ let
 
   aerospaceToml = (pkgs.formats.toml { }).generate "aerospace.toml" aerospaceSettings;
 
+  # Mission-Control-style workspace overview; fn-w toggles it via SIGUSR1.
+  aerospacePeek = pkgs.stdenv.mkDerivation {
+    pname = "aerospace-peek";
+    version = "0.1.0";
+    src = ./aerospace-peek.swift;
+    dontUnpack = true;
+    nativeBuildInputs = [ pkgs.swift ];
+    buildPhase = "swiftc -O $src -o aerospace-peek";
+    installPhase = "install -Dm755 aerospace-peek $out/bin/aerospace-peek";
+  };
+
   yabaiSkhdConfig = ''
     # -------- Yabai shortcuts --------
 
@@ -209,6 +220,9 @@ let
     # Music and ChatGPT get their own named workspaces.
     fn - m : ~/.config/skhd/aerospace_switch_workspace.sh M
     fn - o : ~/.config/skhd/aerospace_switch_workspace.sh O
+
+    # Peek at every workspace; press its key (or arrows + return) to go there.
+    fn - w : /usr/bin/pkill -USR1 -x aerospace-peek
 
     fn + shift - 1 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 1
     fn + shift - 2 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 2
@@ -771,6 +785,33 @@ in
               sleep 0.1
           done
         '';
+      };
+
+      # Keys mirror the fn bindings above so muscle memory carries over.
+      launchd.agents.aerospace-peek = mkIf (use "aerospace") {
+        enable = true;
+        config = {
+          ProgramArguments = [
+            "${aerospacePeek}/bin/aerospace-peek"
+            "--aerospace"
+            "${aerospacePackage}/bin/aerospace"
+            "--switch"
+            "/Users/${username}/.config/skhd/aerospace_switch_workspace.sh"
+            "--key"
+            "7=c"
+            "--key"
+            "8=v"
+            "--key"
+            "9=f"
+            "--key"
+            "10=0"
+          ];
+          RunAtLoad = true;
+          KeepAlive = true;
+          ProcessType = "Interactive";
+          StandardOutPath = "/Users/${username}/Library/Logs/aerospace-peek.log";
+          StandardErrorPath = "/Users/${username}/Library/Logs/aerospace-peek.err";
+        };
       };
 
       launchd.agents.discord-popout-frame-watcher = mkIf (use "aerospace") {
