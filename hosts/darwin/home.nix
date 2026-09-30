@@ -19,6 +19,14 @@
   programs.ssh = {
     enable = true;
     addKeysToAgent = "yes";
+    extraConfig = ''
+      Host ucla
+        HostName lnxsrv.seas.ucla.edu
+        Port 22
+        User natronq
+        IdentityFile ~/.ssh/id_ed25519
+        ForwardAgent yes
+    '';
   };
 
   # programs.zen-browser = {
