@@ -143,6 +143,10 @@ final class AeroSpace: @unchecked Sendable {
         let process: Process = Process()
         process.executableURL = URL(fileURLWithPath: executable ?? bin)
         process.arguments = args
+        // Launchd's PATH lacks aerospace, which the switch script calls by name.
+        var env: [String: String] = ProcessInfo.processInfo.environment
+        env["PATH"] = [(bin as NSString).deletingLastPathComponent, "/run/current-system/sw/bin", env["PATH"] ?? "/usr/bin:/bin"].joined(separator: ":")
+        process.environment = env
         let out: Pipe = Pipe()
         process.standardOutput = out
         process.standardError = FileHandle.nullDevice
@@ -377,6 +381,8 @@ final class TileView: NSView {
     override func mouseMoved(with event: NSEvent) { if !selected { onHover?() } }
     override func mouseEntered(with event: NSEvent) { onHover?() }
     override func mouseDown(with event: NSEvent) { onClick?() }
+    // Clicks land even if the panel never became key.
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 
 final class OverlayPanel: NSPanel {
@@ -398,6 +404,8 @@ final class Overlay {
     private var columns: Int = 1
     private var selection: Int = 0
     private var previous: String?
+    // App to hand focus back to when the overlay is dismissed without switching.
+    private var frontmost: NSRunningApplication?
     private var wallpapers: [URL: CGImage] = [:]
     private var generation: Int = 0
 
@@ -507,6 +515,9 @@ final class Overlay {
         select(names.firstIndex(where: { $0 == initial }) ?? 0)
 
         panel.alphaValue = 0
+        // Launchd agents start in the background, so explicitly take focus for key presses.
+        frontmost = NSWorkspace.shared.frontmostApplication
+        NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
         NSAnimationContext.runAnimationGroup { context in
             context.duration = reduceMotion ? 0 : 0.12
@@ -604,7 +615,9 @@ final class Overlay {
     private func handle(_ event: NSEvent) {
         let key: String = event.charactersIgnoringModifiers?.lowercased() ?? ""
         switch event.keyCode {
-        case 53: hide() // escape
+        case 53: // escape
+            hide()
+            frontmost?.activate()
         case 36, 76, 49: activate(selection) // return, enter, space
         case 48: select((selection + (event.modifierFlags.contains(.shift) ? tiles.count - 1 : 1)) % max(1, tiles.count)) // tab
         case 123: select(selection - 1)
