@@ -660,18 +660,22 @@ in
           #!/bin/bash
           eval $(/opt/homebrew/bin/brew shellenv)
 
-          # Check if Messages is running
-          if ! pgrep -x "Messages" > /dev/null; then
-              open -a "Messages"
-              exit 0
-          fi
+          messages_window_id() {
+              aerospace list-windows --all --format '%{window-id}|%{app-bundle-id}' | awk -F'|' '$2 == "com.apple.MobileSMS" { print $1; exit }'
+          }
 
-          # Get Messages window ID
-          WINDOW_ID=$(aerospace list-windows --all --format '%{window-id}|%{app-name}' | awk -F'|' '$2 == "Messages" { print $1; exit }')
+          WINDOW_ID=$(messages_window_id)
 
+          # Not running, or running with its window closed: `open` sends a reopen
+          # event (unlike `activate`), so wait for the new window to show up.
           if [ -z "$WINDOW_ID" ]; then
-              osascript -e 'tell application "Messages" to activate'
-              exit 0
+              open -a "Messages"
+              for _ in $(seq 20); do
+                  sleep 0.1
+                  WINDOW_ID=$(messages_window_id)
+                  [ -n "$WINDOW_ID" ] && break
+              done
+              [ -z "$WINDOW_ID" ] && exit 0
           fi
 
           # Get current workspace
