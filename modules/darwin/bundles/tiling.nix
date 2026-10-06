@@ -101,6 +101,14 @@ let
           "exec-and-forget sleep 0.2; eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_cap.sh"
         ];
       }
+      {
+        "if".app-id = "net.imput.helium";
+        "if".window-title-regex-substring = "^Picture in Picture$";
+        run = [
+          "layout floating"
+          "exec-and-forget sleep 0.2; eval $(/opt/homebrew/bin/brew shellenv); ~/.config/skhd/aerospace_follow_helium_pip.sh"
+        ];
+      }
     ]
     # Pinned apps land on their workspace as soon as they open. Discord is
     # handled below so popouts can keep following the focused workspace.
@@ -258,7 +266,7 @@ let
 
     fn - r : ~/.config/skhd/aerospace_focus_messages.sh
 
-    # Temporarily hide/reveal the active FaceTime or Discord popout follow window.
+    # Temporarily hide/reveal the active FaceTime, Discord popout, or Helium PiP follow window.
     # 0x32 = ANSI grave/backtick (fn-`).
     fn - 0x32 : ~/.config/skhd/aerospace_toggle_follow_hide.sh
   '';
@@ -861,6 +869,10 @@ in
 
               LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
               [ "$LATEST" = "$REQUESTED" ] || exit 0
+              ~/.config/skhd/aerospace_follow_helium_pip.sh "$REQUESTED"
+
+              LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
+              [ "$LATEST" = "$REQUESTED" ] || exit 0
               ~/.config/skhd/aerospace_follow_discord_popout.sh "$REQUESTED"
 
               LATEST=$(cat "$TARGET_FILE" 2>/dev/null || true)
@@ -905,6 +917,59 @@ in
               [ -n "$id" ] || continue
               WINDOW_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' \
                   | awk -F'|' -v window_id="$id" '$1 == window_id { print $2; exit }')
+              if [ "$WINDOW_WORKSPACE" != "$CURRENT_WORKSPACE" ]; then
+                  aerospace move-node-to-workspace --window-id "$id" "$CURRENT_WORKSPACE"
+              fi
+              aerospace layout --window-id "$id" floating
+          done
+
+          FOCUSED_NOW=$(aerospace list-workspaces --focused 2>/dev/null || true)
+          if [ "$FOCUSED_NOW" != "$CURRENT_WORKSPACE" ]; then
+              aerospace workspace "$CURRENT_WORKSPACE"
+          fi
+          if [ -n "$PREV_FOCUS" ] && [ "$PREV_FOCUS_WORKSPACE" = "$CURRENT_WORKSPACE" ]; then
+              aerospace focus --window-id "$PREV_FOCUS" 2>/dev/null || true
+          fi
+        '';
+      };
+
+      # Helium's picture-in-picture player is its own "Picture in Picture" window.
+      home.file.".config/skhd/aerospace_follow_helium_pip.sh" = mkIf (use "aerospace") {
+        force = true;
+        executable = true;
+        text = ''
+          #!/bin/bash
+          eval "$(/opt/homebrew/bin/brew shellenv)"
+
+          HIDE_STATE="/Users/${username}/Library/Caches/aerospace-follow-hidden"
+          HIDDEN_WS="hidden"
+          SWITCH_TARGET_FILE="/Users/${username}/Library/Caches/aerospace-switch-workspace.target"
+
+          # fn-grave hide: keep the PiP window on the scratch workspace until revealed.
+          if [ -f "$HIDE_STATE" ] && grep -q '^kind=helium$' "$HIDE_STATE" 2>/dev/null; then
+              exit 0
+          fi
+
+          CURRENT_WORKSPACE="''${1:-$(aerospace list-workspaces --focused)}"
+          sleep 0.08
+          SWITCH_TARGET=$(cat "$SWITCH_TARGET_FILE" 2>/dev/null || true)
+          if [ -n "$SWITCH_TARGET" ]; then
+              CURRENT_WORKSPACE="$SWITCH_TARGET"
+          fi
+          if [ -z "$CURRENT_WORKSPACE" ] || [ "$CURRENT_WORKSPACE" = "$HIDDEN_WS" ]; then
+              exit 0
+          fi
+
+          WINDOW_IDS=$(aerospace list-windows --all --format '%{window-id}|%{app-bundle-id}|%{workspace}|%{window-title}' \
+              | awk -F'|' '$2 == "net.imput.helium" && $4 == "Picture in Picture" { print $1 "|" $3 }')
+          [ -n "$WINDOW_IDS" ] || exit 0
+
+          PREV_FOCUS=$(aerospace list-windows --focused --format '%{window-id}' 2>/dev/null || true)
+          PREV_FOCUS_WORKSPACE=$(aerospace list-windows --all --format '%{window-id}|%{workspace}' \
+              | awk -F'|' -v id="$PREV_FOCUS" '$1 == id { print $2; exit }')
+
+          echo "$WINDOW_IDS" | while IFS='|' read -r id WINDOW_WORKSPACE; do
+              [ -n "$id" ] || continue
               if [ "$WINDOW_WORKSPACE" != "$CURRENT_WORKSPACE" ]; then
                   aerospace move-node-to-workspace --window-id "$id" "$CURRENT_WORKSPACE"
               fi
@@ -1211,7 +1276,7 @@ in
           #!/bin/bash
           eval "$(/opt/homebrew/bin/brew shellenv)"
 
-          # fn-grave: park the active FaceTime / Discord popout on a scratch workspace
+          # fn-grave: park the active FaceTime / Discord popout / Helium PiP on a scratch workspace
           # and leave it there until pressed again (follow scripts respect the state file).
           STATE_FILE="/Users/${username}/Library/Caches/aerospace-follow-hidden"
           HIDDEN_WS="hidden"
@@ -1272,16 +1337,21 @@ in
               exit 0
           fi
 
-          PARKED=$(aerospace list-windows --workspace "$HIDDEN_WS" --format '%{window-id}|%{app-name}|%{window-title}' 2>/dev/null || true)
+          PARKED=$(aerospace list-windows --workspace "$HIDDEN_WS" --format '%{window-id}|%{app-name}|%{window-title}|%{app-bundle-id}' 2>/dev/null || true)
           if [ -n "$PARKED" ]; then
               FT_IDS=$(printf '%s\n' "$PARKED" | awk -F'|' 'tolower($2) == "facetime" { print $1 }' | tr '\n' ' ')
               DC_IDS=$(printf '%s\n' "$PARKED" | awk -F'|' '
                 tolower($2) == "discord" && $3 !~ / - Discord$/ { print $1 }
               ' | tr '\n' ' ')
+              PIP_IDS=$(printf '%s\n' "$PARKED" | awk -F'|' '
+                $4 == "net.imput.helium" && $3 == "Picture in Picture" { print $1 }
+              ' | tr '\n' ' ')
               if [ -n "$FT_IDS" ]; then
                   reveal_ids facetime "$FT_IDS"
               elif [ -n "$DC_IDS" ]; then
                   reveal_ids discord "$DC_IDS"
+              elif [ -n "$PIP_IDS" ]; then
+                  reveal_ids helium "$PIP_IDS"
               fi
               exit 0
           fi
@@ -1289,7 +1359,7 @@ in
           FOCUSED_WS=$(aerospace list-workspaces --focused 2>/dev/null || true)
           [ -z "$FOCUSED_WS" ] && exit 0
 
-          # Prefer FaceTime when present, else Discord popout. Prefer the focused workspace.
+          # Prefer FaceTime, then Discord popout, then Helium PiP. Prefer the focused workspace.
           FT_FOCUSED=$(aerospace list-windows --workspace "$FOCUSED_WS" --format '%{window-id}|%{app-name}' 2>/dev/null \
             | awk -F'|' 'tolower($2) == "facetime" { print $1 }' | tr '\n' ' ')
           FT_ANY=$(aerospace list-windows --all --format '%{window-id}|%{app-name}' 2>/dev/null \
@@ -1300,6 +1370,9 @@ in
             | map(select(((."window-title" // "") | test(" - Discord$")) | not))
             | .[0]."window-id" // empty
           ')
+
+          PIP_IDS=$(aerospace list-windows --all --format '%{window-id}|%{app-bundle-id}|%{window-title}' 2>/dev/null \
+            | awk -F'|' '$2 == "net.imput.helium" && $3 == "Picture in Picture" { print $1 }' | tr '\n' ' ')
 
           KIND=""
           IDS=""
@@ -1312,6 +1385,9 @@ in
           elif [ -n "$DC_ID" ]; then
               KIND=discord
               IDS="$DC_ID"
+          elif [ -n "''${PIP_IDS// /}" ]; then
+              KIND=helium
+              IDS="$PIP_IDS"
           else
               exit 0
           fi
