@@ -31,7 +31,6 @@ let
     "Zen Browser" = "1";
     "Code" = "2";
     "Cursor" = "2";
-    "Ghostty" = "3";
     "kitty" = "3";
     "Discord" = "4";
     "Google Chrome" = "5";
@@ -1392,7 +1391,6 @@ in
               ["Zen Browser"]=1
               ["Code"]=2
               ["Cursor"]=2
-              ["Ghostty"]=3
               ["kitty"]=3
               ["Discord"]=4
               ["Spotify"]=11
