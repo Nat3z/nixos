@@ -43,6 +43,10 @@ in
 
     (mkIf cfg.disableFnEmoji {
       system.defaults.hitoolbox.AppleFnUsageType = "Do Nothing";
+      # TextInputSwitcher caches this at launch; launchd restarts it on demand.
+      system.activationScripts.userDefaults.text = mkAfter ''
+        killall TextInputSwitcher >/dev/null 2>&1 || true
+      '';
     })
 
     {
