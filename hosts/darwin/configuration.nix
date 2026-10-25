@@ -117,8 +117,11 @@ in
     karabiner.enable = true;
   };
 
-  # put patches like fast dock and accent keyboard
-  darwin.patches.enable = true;
+  # put patches like fast dock, accent keyboard, and fn emoji
+  darwin.patches = {
+    enable = true;
+    disableFnEmoji = true;
+  };
 
   git-setup.enable = true;
   git-setup.signing = {

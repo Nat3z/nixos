@@ -345,6 +345,21 @@ let
             description = "App shortcuts";
             manipulators = appKarabinerBinds;
           }
+          {
+            # The binds above swallow the key, so macOS sees a bare fn tap and
+            # opens the emoji picker. Lazy fn only reaches macOS with a real key.
+            description = "Lazy fn";
+            manipulators = [
+              {
+                type = "basic";
+                from = {
+                  key_code = "fn";
+                  modifiers.optional = [ "any" ];
+                };
+                to = [ { key_code = "fn"; lazy = true; } ];
+              }
+            ];
+          }
         ];
       }
     ];
