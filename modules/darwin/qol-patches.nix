@@ -22,6 +22,11 @@ in
       default = true;
       description = "Disable the Accent keyboard";
     };
+    disableFnEmoji = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Stop the fn/globe key from opening the emoji picker";
+    };
   };
 
   config = mkIf cfg.enable (mkMerge [
@@ -34,6 +39,10 @@ in
 
     (mkIf cfg.disableAccentKeyboard {
       system.defaults.NSGlobalDomain.ApplePressAndHoldEnabled = false;
+    })
+
+    (mkIf cfg.disableFnEmoji {
+      system.defaults.hitoolbox.AppleFnUsageType = "Do Nothing";
     })
 
     {
