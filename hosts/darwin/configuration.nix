@@ -113,7 +113,8 @@ in
     enable = true;
     # yabai.enable = false; # BECAUSE WE'RE A SIPS FAMILY NOW (cause of college)
     aerospace.enable = true;
-    skhd.enable = true;
+    skhd.enable = false; # karabiner survives Secure Input; skhd only covers yabai now
+    karabiner.enable = true;
   };
 
   # put patches like fast dock and accent keyboard

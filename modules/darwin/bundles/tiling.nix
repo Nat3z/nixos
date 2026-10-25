@@ -210,79 +210,146 @@ let
     fn - r : ~/.config/skhd/focus_messages.sh
   '';
 
-  aerospaceSkhdConfig = ''
-    # -------- AeroSpace shortcuts --------
-
-    # Switch immediately; the wrapper moves follow windows off the hot path.
-    fn - 1 : ~/.config/skhd/aerospace_switch_workspace.sh 1
-    fn - 2 : ~/.config/skhd/aerospace_switch_workspace.sh 2
-    fn - 3 : ~/.config/skhd/aerospace_switch_workspace.sh 3
-    fn - 4 : ~/.config/skhd/aerospace_switch_workspace.sh 4
-    fn - 5 : ~/.config/skhd/aerospace_switch_workspace.sh 5
-    fn - 6 : ~/.config/skhd/aerospace_switch_workspace.sh 6
-    fn - c : ~/.config/skhd/aerospace_switch_workspace.sh 7
-    fn - v : ~/.config/skhd/aerospace_switch_workspace.sh 8
-    fn - f : ~/.config/skhd/aerospace_switch_workspace.sh 9
-    fn - 0 : ~/.config/skhd/aerospace_switch_workspace.sh 10
-    # Music and ChatGPT get their own named workspaces.
-    fn - m : ~/.config/skhd/aerospace_switch_workspace.sh M
-    fn - o : ~/.config/skhd/aerospace_switch_workspace.sh O
-
-    # Peek at every workspace; press its key (or arrows + return) to go there.
-    fn - w : /usr/bin/pkill -USR1 -x aerospace-peek
-
-    fn + shift - 1 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 1
-    fn + shift - 2 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 2
-    fn + shift - 3 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 3
-    fn + shift - 4 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 4
-    fn + shift - 5 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 5
-    fn + shift - 6 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 6
-    fn + shift - v : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 8
-    fn + shift - f : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 9
-    fn + shift - 0 : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move-node-to-workspace 10
-
-    fn + shift - k : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move up
-    fn + shift - h : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move left
-    fn + shift - l : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move right
-    fn + shift - j : eval $(/opt/homebrew/bin/brew shellenv) && aerospace move down
-
-    fn - j : eval $(/opt/homebrew/bin/brew shellenv) && aerospace focus down
-    fn - h : eval $(/opt/homebrew/bin/brew shellenv) && aerospace focus left
-    fn - l : eval $(/opt/homebrew/bin/brew shellenv) && aerospace focus right
-    fn - k : eval $(/opt/homebrew/bin/brew shellenv) && aerospace focus up
-
-    fn - g : ~/.config/skhd/aerospace_reorganizer.sh
-
-    # AeroSpace workspaces are dynamic; there is no empty-space cleanup equivalent.
-    fn + shift - d : true
-
-    # Toggle iPhone Mirroring on the focused workspace.
-    fn - t : ${
-      config.home-manager.users.${username}.home.file.".config/skhd/aerospace_toggle_iphone_mirroring.sh".source
+  # Karabiner reads keys below Secure Input, so these keep working while a
+  # password field (or a terminal's Secure Keyboard Entry) is active.
+  # Its shell_command gets a bare PATH, so put the nix aerospace on it.
+  karabinerBind =
+    {
+      key,
+      run,
+      mods ? [ "fn" ],
+      apps ? [ ],
+    }:
+    {
+      type = "basic";
+      from = {
+        key_code = key;
+        modifiers.mandatory = mods;
+      };
+      to = [ { shell_command = "export PATH=/run/current-system/sw/bin:$PATH; ${run}"; } ];
     }
+    // optionalAttrs (apps != [ ]) {
+      conditions = [
+        {
+          type = "frontmost_application_if";
+          bundle_identifiers = apps;
+        }
+      ];
+    };
 
-    # Toggle automatic focus without colliding with iPhone Mirroring.
-    fn - y : ~/.config/skhd/aerospace_toggle_ffm.sh
+  # Key -> AeroSpace workspace, shared by the switch and move binds.
+  workspaceKeys = {
+    "1" = "1";
+    "2" = "2";
+    "3" = "3";
+    "4" = "4";
+    "5" = "5";
+    "6" = "6";
+    "c" = "7";
+    "v" = "8";
+    "f" = "9";
+    "0" = "10";
+    # Music and ChatGPT get their own named workspaces.
+    "m" = "M";
+    "o" = "O";
+  };
 
-    fn - r : ~/.config/skhd/aerospace_focus_messages.sh
+  # Moving to 7/M/O was never bound; fn-shift-c/m/o stay free.
+  moveKeys = [ "1" "2" "3" "4" "5" "6" "v" "f" "0" ];
 
-    # Temporarily hide/reveal the active FaceTime, Discord popout, or Helium PiP follow window.
-    # 0x32 = ANSI grave/backtick (fn-`).
-    fn - 0x32 : ~/.config/skhd/aerospace_toggle_follow_hide.sh
-  '';
+  directionKeys = {
+    h = "left";
+    j = "down";
+    k = "up";
+    l = "right";
+  };
 
-  appSkhdConfig = ''
-    # -------- App shortcuts --------
-    cmd - q : /bin/bash -lc '/Users/nat/Scripts/confirm-quit-front-app quit; ~/.config/skhd/aerospace_reflow.sh >/dev/null 2>&1 &'
-    cmd - w [
-        "FaceTime" : /bin/bash -lc '/Users/nat/Scripts/confirm-quit-front-app close; ~/.config/skhd/aerospace_reflow.sh >/dev/null 2>&1 &'
-        "facetime" : /bin/bash -lc '/Users/nat/Scripts/confirm-quit-front-app close; ~/.config/skhd/aerospace_reflow.sh >/dev/null 2>&1 &'
-    ]
+  reflow = "~/.config/skhd/aerospace_reflow.sh >/dev/null 2>&1 &";
 
-    fn - q : pgrep -x "ghostty" && osascript -e 'tell application "System Events" to tell process "Ghostty" to click menu item "New Window" of menu "File" of menu bar item "File" of menu bar 1' || open -a "Ghostty"
-    fn - e : osascript -e 'tell application "Finder" to make new Finder window to home'
-    fn - b : pgrep -x "helium" && osascript -e 'tell application "System Events" to tell process "Helium" to click menu item "New Window" of menu "File" of menu bar item "File" of menu bar 1' || open -a "Helium"
-  '';
+  aerospaceKarabinerBinds =
+    # Switch immediately; the wrapper moves follow windows off the hot path.
+    mapAttrsToList (key: ws: karabinerBind {
+      inherit key;
+      run = "~/.config/skhd/aerospace_switch_workspace.sh ${ws}";
+    }) workspaceKeys
+    ++ map (key: karabinerBind {
+      inherit key;
+      mods = [ "fn" "shift" ];
+      run = "aerospace move-node-to-workspace ${workspaceKeys.${key}}";
+    }) moveKeys
+    ++ mapAttrsToList (key: dir: karabinerBind {
+      inherit key;
+      mods = [ "fn" "shift" ];
+      run = "aerospace move ${dir}";
+    }) directionKeys
+    ++ mapAttrsToList (key: dir: karabinerBind {
+      inherit key;
+      run = "aerospace focus ${dir}";
+    }) directionKeys
+    ++ [
+      # Peek at every workspace; press its key (or arrows + return) to go there.
+      (karabinerBind { key = "w"; run = "/usr/bin/pkill -USR1 -x aerospace-peek"; })
+      (karabinerBind { key = "g"; run = "~/.config/skhd/aerospace_reorganizer.sh"; })
+      # Toggle iPhone Mirroring on the focused workspace.
+      (karabinerBind {
+        key = "t";
+        run = "${
+          config.home-manager.users.${username}.home.file.".config/skhd/aerospace_toggle_iphone_mirroring.sh".source
+        }";
+      })
+      # Toggle automatic focus without colliding with iPhone Mirroring.
+      (karabinerBind { key = "y"; run = "~/.config/skhd/aerospace_toggle_ffm.sh"; })
+      (karabinerBind { key = "r"; run = "~/.config/skhd/aerospace_focus_messages.sh"; })
+      # Temporarily hide/reveal the active FaceTime, Discord popout, or Helium PiP follow window.
+      (karabinerBind { key = "grave_accent_and_tilde"; run = "~/.config/skhd/aerospace_toggle_follow_hide.sh"; })
+    ];
+
+  appKarabinerBinds = [
+    (karabinerBind {
+      key = "q";
+      mods = [ "command" ];
+      run = "/Users/${username}/Scripts/confirm-quit-front-app quit; ${reflow}";
+    })
+    (karabinerBind {
+      key = "w";
+      mods = [ "command" ];
+      apps = [ "^com\\.apple\\.FaceTime$" ];
+      run = "/Users/${username}/Scripts/confirm-quit-front-app close; ${reflow}";
+    })
+    (karabinerBind {
+      key = "q";
+      run = ''pgrep -x "ghostty" && osascript -e 'tell application "System Events" to tell process "Ghostty" to click menu item "New Window" of menu "File" of menu bar item "File" of menu bar 1' || open -a "Ghostty"'';
+    })
+    (karabinerBind {
+      key = "e";
+      run = "osascript -e 'tell application \"Finder\" to make new Finder window to home'";
+    })
+    (karabinerBind {
+      key = "b";
+      run = ''pgrep -x "helium" && osascript -e 'tell application "System Events" to tell process "Helium" to click menu item "New Window" of menu "File" of menu bar item "File" of menu bar 1' || open -a "Helium"'';
+    })
+  ];
+
+  karabinerJson = pkgs.writeText "karabiner.json" (builtins.toJSON {
+    profiles = [
+      {
+        name = "Default";
+        selected = true;
+        virtual_hid_keyboard.keyboard_type_v2 = "ansi";
+        complex_modifications.rules = [
+          {
+            description = "AeroSpace shortcuts";
+            manipulators = aerospaceKarabinerBinds;
+          }
+          {
+            description = "App shortcuts";
+            manipulators = appKarabinerBinds;
+          }
+        ];
+      }
+    ];
+  });
+
   tilingOptions = {
     enable = mkEnableOption "tiling window-management bundle";
 
@@ -300,8 +367,14 @@ let
 
     skhd.enable = mkOption {
       type = types.bool;
+      default = false;
+      description = "Enable Skhd (yabai shortcuts only)";
+    };
+
+    karabiner.enable = mkOption {
+      type = types.bool;
       default = true;
-      description = "Enable Skhd";
+      description = "Enable Karabiner-Elements (AeroSpace and app shortcuts)";
     };
   };
 in
@@ -318,6 +391,10 @@ in
         message = "Only one of yabai or aerospace may be enabled under bundles.programming.tiling.";
       }
       {
+        assertion = !(use "karabiner") || (use "aerospace");
+        message = "darwin.tiling.karabiner only carries AeroSpace shortcuts; use skhd for yabai.";
+      }
+      {
         assertion = (use "yabai") || (use "aerospace");
         message = "Enable either bundles.programming.tiling.yabai or bundles.programming.tiling.aerospace when tiling is enabled.";
       }
@@ -325,12 +402,10 @@ in
 
     services.skhd = mkIf (use "skhd") {
       enable = true;
-      skhdConfig = concatStringsSep "\n" (
-        optional (use "yabai") yabaiSkhdConfig
-        ++ optional (use "aerospace") aerospaceSkhdConfig
-        ++ [ appSkhdConfig ]
-      );
+      skhdConfig = yabaiSkhdConfig;
     };
+
+    homebrew.casks = mkIf (use "karabiner") [ "karabiner-elements" ];
 
     # Re-read /etc/skhdrc after nix-darwin swaps its symlink target.
     system.activationScripts.postActivation.text = mkIf (use "skhd") (mkAfter ''
@@ -382,6 +457,15 @@ in
 
     # Submodule so we get home-manager's lib (lib.hm), not nix-darwin's.
     home-manager.users.${username} = { lib, ... }: {
+      # Karabiner rewrites its config from the GUI, so copy it instead of linking.
+      home.activation.karabinerConfig = mkIf (use "karabiner") (
+        lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+          mkdir -p "$HOME/.config/karabiner"
+          cp ${karabinerJson} "$HOME/.config/karabiner/karabiner.json"
+          chmod u+w "$HOME/.config/karabiner/karabiner.json"
+        ''
+      );
+
       # Writable copy (not a store symlink) for runtime configuration helpers.
       home.activation.aerospaceWritableConfig = mkIf (use "aerospace") (
         lib.hm.dag.entryAfter [ "writeBoundary" ] ''
