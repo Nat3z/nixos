@@ -35,10 +35,12 @@ let
     "Discord" = "4";
     "Google Chrome" = "5";
     "GitHub Desktop" = "5";
+    "T3 Code (Nightly)" = "5";
     "Notion Calendar" = "7";
     "Spotify" = "M";
     "Music" = "M";
     "ChatGPT" = "O";
+    "Grok Bot" = "O";
   };
 
   # Shared AeroSpace settings. Written to a user-writable path so the runtime
@@ -249,7 +251,7 @@ let
     "v" = "8";
     "f" = "9";
     "0" = "10";
-    # Music and ChatGPT get their own named workspaces.
+    # Music and the chat apps get their own named workspaces.
     "m" = "M";
     "o" = "O";
   };
